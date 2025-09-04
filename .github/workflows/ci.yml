@@ -1,8 +1,8 @@
-name: Django CI with MySQL
+aname: Django CI with MySQL
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "eduard" ]
   pull_request:
 
 jobs:
@@ -59,3 +59,4 @@ jobs:
 
       - name: Correr tests
         run: python manage.py test
+
