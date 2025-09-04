@@ -62,7 +62,7 @@ INSTALLED_APPS = [
     'users_profiles',
     'company_reports',
     'reflexo',
-    'clinica',
+    'clinica.apps.ClinicaConfig',
 ]
 
 # Modelo de usuario personalizado

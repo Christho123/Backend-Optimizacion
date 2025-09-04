@@ -9,6 +9,7 @@ from django.db.models.functions import Concat
 
 from ..models.patient import Patient
 from ..serializers.patient import PatientSerializer, PatientListSerializer
+from architect.utils.tenant import filter_by_tenant, is_global_admin, get_tenant
 from ubi_geo.models import Region, Province, District
 
 
@@ -29,6 +30,7 @@ class PatientService:
             page = 1
 
         queryset = Patient.objects.filter(deleted_at__isnull=True).order_by("-id")
+        queryset = filter_by_tenant(queryset, request.user, field='reflexo')
         paginator = Paginator(queryset, per_page)
         try:
             page_obj = paginator.page(page)
@@ -36,7 +38,7 @@ class PatientService:
             page_obj = paginator.page(paginator.num_pages)
         return page_obj
 
-    def search_patients(self, params: Dict[str, Any]):
+    def search_patients(self, params: Dict[str, Any], user=None):
         per_page_raw = params.get("per_page", 30)
         search_term = (params.get("search") or params.get("q") or "").strip()
         try:
@@ -45,6 +47,8 @@ class PatientService:
             per_page = 30
 
         queryset = Patient.objects.filter(deleted_at__isnull=True).order_by("-id")
+        if user is not None:
+            queryset = filter_by_tenant(queryset, user, field='reflexo')
         if search_term:
             queryset = queryset.annotate(
                 paternal_name=Concat("paternal_lastname", Value(" "), "name"),
@@ -108,9 +112,12 @@ class PatientService:
 
     # ---------- operaciones ----------
     @transaction.atomic
-    def store_or_restore(self, data: Dict[str, Any]) -> Tuple[Patient, bool, bool]:
+    def store_or_restore(self, data: Dict[str, Any], user=None) -> Tuple[Patient, bool, bool]:
         # evita duplicados por nombres
-        existing = Patient.objects.filter(
+        base_qs = Patient.objects.all()
+        if user is not None:
+            base_qs = filter_by_tenant(base_qs, user, field='reflexo')
+        existing = base_qs.filter(
             name=data.get("name"),
             paternal_lastname=data.get("paternal_lastname"),
             maternal_lastname=data.get("maternal_lastname"),
@@ -121,11 +128,24 @@ class PatientService:
         # validación geográfica (acepta id o instancia en data)
         self._validate_geo(data.get("region"), data.get("province"), data.get("district"))
 
+        # Reglas de tenant en creación
+        data = dict(data)
+        if user is not None:
+            if is_global_admin(user):
+                # Admin global DEBE indicar empresa/tenant
+                if not data.get('reflexo') and not data.get('reflexo_id'):
+                    raise ValidationError({"reflexo_id": "Debe indicar la empresa (tenant) para el paciente."})
+            else:
+                # Usuario de empresa: asignar automáticamente su tenant
+                tenant_id = get_tenant(user)
+                if tenant_id is None:
+                    raise ValidationError({"tenant": "El usuario no tiene una empresa asignada (reflexo). Contacte al administrador."})
+                data['reflexo_id'] = tenant_id
         patient = Patient.objects.create(**data)
         return patient, True, False
 
     @transaction.atomic
-    def update(self, patient: Patient, data: Dict[str, Any]) -> Patient:
+    def update(self, patient: Patient, data: Dict[str, Any], user=None) -> Patient:
         # si se tocan FKs de geo, validar coherencia
         if any(k in data for k in ("region", "province", "district")):
             region_val = data.get("region", patient.region_id)
@@ -133,6 +153,11 @@ class PatientService:
             district_val = data.get("district", patient.district_id)
             self._validate_geo(region_val, province_val, district_val)
 
+        # Evitar cambio de tenant para no-admin
+        if user is not None and not is_global_admin(user):
+            data = dict(data)
+            data.pop('reflexo', None)
+            data.pop('reflexo_id', None)
         changed_fields = []
         for field, value in data.items():
             if not hasattr(patient, field):

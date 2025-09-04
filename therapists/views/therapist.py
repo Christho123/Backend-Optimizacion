@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from therapists.models.therapist import Therapist
 from therapists.serializers.therapist import TherapistSerializer
+from architect.utils.tenant import filter_by_tenant, is_global_admin
 
 
 class TherapistViewSet(viewsets.ModelViewSet):
@@ -48,6 +49,8 @@ class TherapistViewSet(viewsets.ModelViewSet):
             Therapist.objects.select_related("region", "province", "district")
             .all()
         )
+        # Tenant isolation
+        qs = filter_by_tenant(qs, self.request.user, field='reflexo')
 
         # filtro por estado (activo por defecto)
         active = self.request.query_params.get("active", "true").lower()
@@ -68,6 +71,20 @@ class TherapistViewSet(viewsets.ModelViewSet):
             qs = qs.filter(district_id=district)
 
         return qs
+
+    def perform_create(self, serializer):
+        # Asigna tenant automáticamente si no es admin global
+        if not is_global_admin(self.request.user):
+            serializer.save(reflexo_id=getattr(self.request.user, 'reflexo_id', None))
+        else:
+            serializer.save()
+
+    def perform_update(self, serializer):
+        # Evita cambiar el tenant para usuarios no admin
+        if not is_global_admin(self.request.user):
+            serializer.save(reflexo_id=getattr(self.request.user, 'reflexo_id', None))
+        else:
+            serializer.save()
 
     def destroy(self, request, *args, **kwargs):
         """

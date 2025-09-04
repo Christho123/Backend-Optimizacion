@@ -160,7 +160,7 @@ class AppointmentService:
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    def list_all(self, filters=None, pagination=None):
+    def list_all(self, filters=None, pagination=None, tenant_id=None):
         """
         Lista todas las citas con filtros opcionales.
         
@@ -173,6 +173,8 @@ class AppointmentService:
         """
         try:
             queryset = Appointment.objects.filter(deleted_at__isnull=True)
+            if tenant_id:
+                queryset = queryset.filter(reflexo_id=tenant_id)
             
             # Aplicar filtros
             if filters:
@@ -205,7 +207,7 @@ class AppointmentService:
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    def get_by_date_range(self, start_date, end_date, filters=None):
+    def get_by_date_range(self, start_date, end_date, filters=None, tenant_id=None):
         """
         Obtiene citas dentro de un rango de fechas.
         
@@ -222,6 +224,8 @@ class AppointmentService:
                 appointment_date__range=[start_date, end_date],
                 deleted_at__isnull=True
             )
+            if tenant_id:
+                queryset = queryset.filter(reflexo_id=tenant_id)
             
             # Aplicar filtros adicionales
             if filters:
@@ -244,7 +248,7 @@ class AppointmentService:
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    def get_completed_appointments(self, filters=None):
+    def get_completed_appointments(self, filters=None, tenant_id=None):
         """
         Obtiene las citas completadas.
         
@@ -260,6 +264,8 @@ class AppointmentService:
                 appointment_date__lt=today,
                 deleted_at__isnull=True
             )
+            if tenant_id:
+                queryset = queryset.filter(reflexo_id=tenant_id)
             
             # Aplicar filtros adicionales
             if filters:
@@ -282,7 +288,7 @@ class AppointmentService:
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    def get_pending_appointments(self, filters=None):
+    def get_pending_appointments(self, filters=None, tenant_id=None):
         """
         Obtiene las citas pendientes.
         
@@ -298,6 +304,8 @@ class AppointmentService:
                 appointment_date__gte=today,
                 deleted_at__isnull=True
             )
+            if tenant_id:
+                queryset = queryset.filter(reflexo_id=tenant_id)
             
             # Aplicar filtros adicionales
             if filters:
@@ -320,7 +328,7 @@ class AppointmentService:
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    def check_availability(self, date, hour, duration=60):
+    def check_availability(self, date, hour, duration=60, tenant_id=None):
         """
         Verifica la disponibilidad para una cita.
         
@@ -347,6 +355,8 @@ class AppointmentService:
             ).exclude(
                 hour__lte=start_datetime.time()
             )
+            if tenant_id:
+                conflicting_appointments = conflicting_appointments.filter(reflexo_id=tenant_id)
             
             is_available = not conflicting_appointments.exists()
             

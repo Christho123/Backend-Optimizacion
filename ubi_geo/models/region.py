@@ -7,7 +7,6 @@ class Region(models.Model):
     """
     
     name = models.CharField(max_length=255, verbose_name="Nombre")
-    country = models.ForeignKey('Country', on_delete=models.CASCADE, verbose_name="País")
     
     # Campos de auditoría
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de creación")

@@ -19,6 +19,9 @@ class PatientSerializer(serializers.ModelSerializer):
     district_id = serializers.PrimaryKeyRelatedField(queryset=DistrictSerializer.Meta.model.objects.all(), source='district', write_only=True)
     document_type_id = serializers.PrimaryKeyRelatedField(queryset=DocumentTypeSerializer.Meta.model.objects.all(), source='document_type', write_only=True)
 
+    # Permitir que administradores globales asignen el tenant explícitamente
+    reflexo_id = serializers.IntegerField(write_only=True, required=False)
+
     # Validaciones campo por campo
     document_number = serializers.CharField(
         max_length=255,
@@ -62,6 +65,7 @@ class PatientSerializer(serializers.ModelSerializer):
             'province_id',
             'district_id',
             'document_type_id',
+            'reflexo_id',
             'created_at',
             'updated_at',
             'deleted_at',

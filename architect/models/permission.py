@@ -48,6 +48,10 @@ class Role(models.Model):
         verbose_name = "Rol"
         verbose_name_plural = "Roles"
         ordering = ['name']
+        # Custom Django permission to allow cross-tenant visibility in admin/UI
+        permissions = [
+            ("view_all_tenants", "Can view data across all tenants (disable tenant filtering)"),
+        ]
     
     def __str__(self):
         return self.name or "Sin nombre"

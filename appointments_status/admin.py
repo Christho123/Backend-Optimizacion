@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models.appointment import Appointment
 from .models.appointment_status import AppointmentStatus
 from .models.ticket import Ticket
+from architect.utils.tenant import is_global_admin, get_tenant, filter_by_tenant
 
 
 @admin.register(AppointmentStatus)
@@ -93,9 +94,41 @@ class AppointmentAdmin(admin.ModelAdmin):
     )
 
     def get_queryset(self, request):
-        return (super()
-                .get_queryset(request)
-                .select_related('patient', 'therapist', 'history', 'payment_status'))
+        qs = (super()
+              .get_queryset(request)
+              .select_related('patient', 'therapist', 'history', 'payment_status'))
+        if is_global_admin(request.user):
+            return qs
+        return filter_by_tenant(qs, request.user, field='reflexo')
+
+    def get_readonly_fields(self, request, obj=None):
+        ro = list(super().get_readonly_fields(request, obj))
+        if not is_global_admin(request.user):
+            ro.append('reflexo')
+        return tuple(ro)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if not is_global_admin(request.user):
+            tenant_id = get_tenant(request.user)
+            if tenant_id is not None:
+                if db_field.name == 'patient':
+                    from patients_diagnoses.models import Patient
+                    kwargs['queryset'] = Patient.objects.filter(reflexo_id=tenant_id)
+                elif db_field.name == 'therapist':
+                    from therapists.models import Therapist
+                    kwargs['queryset'] = Therapist.objects.filter(reflexo_id=tenant_id)
+                elif db_field.name == 'history':
+                    from histories_configurations.models import History
+                    kwargs['queryset'] = History.objects.filter(reflexo_id=tenant_id)
+                elif db_field.name == 'reflexo':
+                    from reflexo.models import Reflexo
+                    kwargs['queryset'] = Reflexo.objects.filter(id=tenant_id)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def save_model(self, request, obj, form, change):
+        if not is_global_admin(request.user):
+            obj.reflexo_id = get_tenant(request.user)
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Ticket)
@@ -150,8 +183,19 @@ class TicketAdmin(admin.ModelAdmin):
     mark_as_cancelled.short_description = "Marcar como cancelado"
 
     def get_queryset(self, request):
-        """Optimiza las consultas con select_related"""
-        return super().get_queryset(request).select_related('appointment')
+        """Optimiza las consultas con select_related y aplica tenant"""
+        qs = super().get_queryset(request).select_related('appointment')
+        if is_global_admin(request.user):
+            return qs
+        tenant_id = get_tenant(request.user)
+        return qs.filter(appointment__reflexo_id=tenant_id)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'appointment' and not is_global_admin(request.user):
+            tenant_id = get_tenant(request.user)
+            if tenant_id is not None:
+                kwargs['queryset'] = Appointment.objects.filter(reflexo_id=tenant_id)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_changeform_initial_data(self, request):
         """

@@ -203,8 +203,19 @@ class UserVerificationCodeAdmin(admin.ModelAdmin):
     )
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related("user")
+        # Evitar hits a la BD cuando la tabla no existe; el EmptyQuerySet no consulta.
+        try:
+            qs = super().get_queryset(request)
+            return qs.select_related("user")
+        except Exception:
+            from django.db.models.query import EmptyQuerySet
+            return self.model.objects.none()
+
+    # Redirige el listado al formulario de creación para evitar el error de tabla inexistente
+    def changelist_view(self, request, extra_context=None):
+        from django.http import HttpResponseRedirect
+        from django.urls import reverse
+        return HttpResponseRedirect(reverse('admin:users_profiles_userverificationcode_add'))
 
 
 # Configuración del sitio admin

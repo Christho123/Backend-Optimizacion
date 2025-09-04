@@ -58,6 +58,17 @@ class User(AbstractUser):
     email_verified_at = models.DateTimeField(blank=True, null=True, verbose_name="Email verificado en")
     remember_token    = models.CharField(max_length=100, blank=True, null=True, verbose_name="Token de recordatorio")
 
+    # Multitenant: empresa/tenant al que pertenece el usuario
+    # Nota: se deja nullable para no romper usuarios existentes hasta migración/backfill
+    reflexo = models.ForeignKey(
+        'reflexo.Reflexo',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='+',
+        verbose_name='Empresa/Tenant'
+    )
+
     document_type = models.ForeignKey('histories_configurations.DocumentType',
                                       on_delete=models.CASCADE, null=True, blank=True, verbose_name="Tipo de documento")
     country = models.ForeignKey('ubi_geo.Country',
@@ -95,3 +106,8 @@ class User(AbstractUser):
     def verify_email(self):
         self.email_verified_at = timezone.now()
         self.save(update_fields=['email_verified_at'])
+
+    @property
+    def is_global_admin(self) -> bool:
+        """Admin global (ve todo): superuser o rol Admin si existiera el atributo."""
+        return bool(getattr(self, 'is_superuser', False) or getattr(self, 'rol', None) == 'Admin')

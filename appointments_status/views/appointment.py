@@ -8,6 +8,7 @@ from ..models import Appointment
 from ..serializers import AppointmentSerializer
 from ..services import AppointmentService
 from django.utils import timezone
+from architect.utils.tenant import filter_by_tenant, assign_tenant_on_create, is_global_admin
 
 
 # Create your models here.
@@ -53,6 +54,8 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         Filtra el queryset según los parámetros de la request.
         """
         queryset = Appointment.objects.filter(deleted_at__isnull=True)
+        # Tenant isolation
+        queryset = filter_by_tenant(queryset, self.request.user, field='reflexo')
         
         # Filtros adicionales
         appointment_date = self.request.query_params.get('appointment_date', None)
@@ -65,20 +68,34 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         """
         Crea una nueva cita con ticket automático.
         """
-        return self.service.create(request.data)
+        payload = assign_tenant_on_create(request.data, request.user, field='reflexo')
+        return self.service.create(payload)
     
     def update(self, request, *args, **kwargs):
         """
         Actualiza una cita existente.
         """
         appointment_id = kwargs.get('pk')
-        return self.service.update(appointment_id, request.data)
+        # Ensure the appointment belongs to tenant
+        try:
+            _ = self.get_queryset().get(pk=appointment_id)
+        except Appointment.DoesNotExist:
+            return Response({'error': 'Cita no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        data = dict(request.data)
+        if not is_global_admin(request.user):
+            data['reflexo'] = getattr(request.user, 'reflexo_id', None)
+        return self.service.update(appointment_id, data)
     
     def destroy(self, request, *args, **kwargs):
         """
         Elimina una cita (soft delete).
         """
         appointment_id = kwargs.get('pk')
+        # Ensure the appointment belongs to tenant
+        try:
+            _ = self.get_queryset().get(pk=appointment_id)
+        except Appointment.DoesNotExist:
+            return Response({'error': 'Cita no encontrada'}, status=status.HTTP_404_NOT_FOUND)
         return self.service.delete(appointment_id)
     
     def list(self, request, *args, **kwargs):
@@ -101,7 +118,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             pagination['page'] = int(page) if page else 1
             pagination['page_size'] = int(page_size) if page_size else 10
         
-        return self.service.list_all(filters, pagination)
+        # Tenant filter: only pass for non-admins
+        tenant_id = None if is_global_admin(request.user) else getattr(request.user, 'reflexo_id', None)
+        return self.service.list_all(filters, pagination, tenant_id=tenant_id)
     
     @action(detail=False, methods=['get'])
     def completed(self, request):
@@ -114,7 +133,8 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             if value:
                 filters[field] = value
         
-        return self.service.get_completed_appointments(filters)
+        tenant_id = None if is_global_admin(request.user) else getattr(request.user, 'reflexo_id', None)
+        return self.service.get_completed_appointments(filters, tenant_id=tenant_id)
     
     @action(detail=False, methods=['get'])
     def pending(self, request):
@@ -127,7 +147,8 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             if value:
                 filters[field] = value
         
-        return self.service.get_pending_appointments(filters)
+        tenant_id = None if is_global_admin(request.user) else getattr(request.user, 'reflexo_id', None)
+        return self.service.get_pending_appointments(filters, tenant_id=tenant_id)
     
     @action(detail=False, methods=['get'])
     def by_date_range(self, request):
@@ -149,7 +170,8 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             if value:
                 filters[field] = value
         
-        return self.service.get_by_date_range(start_date, end_date, filters)
+        tenant_id = None if is_global_admin(request.user) else getattr(request.user, 'reflexo_id', None)
+        return self.service.get_by_date_range(start_date, end_date, filters, tenant_id=tenant_id)
     
     @action(detail=False, methods=['get'])
     def check_availability(self, request):
@@ -176,7 +198,8 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        return self.service.check_availability(date_obj, hour_obj, int(duration))
+        tenant_id = None if is_global_admin(request.user) else getattr(request.user, 'reflexo_id', None)
+        return self.service.check_availability(date_obj, hour_obj, int(duration), tenant_id=tenant_id)
     
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):

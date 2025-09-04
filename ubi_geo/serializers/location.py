@@ -6,7 +6,7 @@ from ubi_geo.models.district import District
 class RegionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Region
-        fields = ("id", "name", "country", "created_at", "updated_at", "deleted_at")
+        fields = ("id", "name", "created_at", "updated_at", "deleted_at")
 
 class ProvinceSerializer(serializers.ModelSerializer):
     region = serializers.PrimaryKeyRelatedField(read_only=True)

@@ -41,3 +41,15 @@ MESSAGES = {
     'INVALID_CREDENTIALS': 'Credenciales inválidas',
     'USER_NOT_FOUND': 'Usuario no encontrado'
 } 
+
+
+class SystemConstants:
+    """
+    Contenedor para compatibilidad: permite importar SystemConstants y acceder a
+    constantes como atributos de clase.
+    """
+    ROLES = ROLES
+    USER_STATUS = USER_STATUS
+    PERMISSION_TYPES = PERMISSION_TYPES
+    JWT_SETTINGS = JWT_SETTINGS
+    MESSAGES = MESSAGES

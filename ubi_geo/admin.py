@@ -5,8 +5,8 @@ from ubi_geo.models.district import District
 
 @admin.register(Region)
 class RegionAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "country", "created_at")
-    list_filter = ("country", "created_at", "deleted_at")
+    list_display = ("id", "name", "created_at")
+    list_filter = ("created_at", "deleted_at")
     search_fields = ("name",)
     readonly_fields = ("created_at", "updated_at", "deleted_at")
 

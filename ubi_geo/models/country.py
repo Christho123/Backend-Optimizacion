@@ -21,6 +21,8 @@ class Country(models.Model):
         verbose_name = "País"
         verbose_name_plural = "Países"
         ordering = ['name']
+        # Mantener SOLO el permiso de "view"; eliminar auto creación de add/change/delete
+        default_permissions = ("view",)
     
     def __str__(self):
         return self.name
