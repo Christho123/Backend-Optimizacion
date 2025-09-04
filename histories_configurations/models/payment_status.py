@@ -7,8 +7,8 @@ class PaymentStatus(models.Model):
     description = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
-        db_table = 'payment_status'   # <- coincide con tu tabla
-        managed = False               # <- NO generar/alterar tabla vía migraciones
+        db_table = 'payment_status'   # nombre de tabla esperado
+        managed = True                # permitir que Django cree la tabla
         verbose_name = "Estado de pago"
         verbose_name_plural = "Estados de pago"
 

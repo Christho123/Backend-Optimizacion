@@ -1,13 +1,7 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser
+from .models import UserProfile
 
-class CustomUserAdmin(UserAdmin):
-    fieldsets = UserAdmin.fieldsets + (
-        ('reflexo Info', {'fields': ('reflexo',)}),
-    )
-    add_fieldsets = UserAdmin.add_fieldsets + (
-        ('reflexo Info', {'fields': ('reflexo',)}),
-    )
-
-admin.site.register(CustomUser, CustomUserAdmin)
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ("user", "reflexo")
+    search_fields = ("user__email", "user__user_name")

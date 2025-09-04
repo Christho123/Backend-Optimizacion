@@ -1,7 +1,6 @@
 from django.db import models
 from ubi_geo.models import Region, Province, District
 from histories_configurations.models import DocumentType
-from reflexo.models import Reflexo
 
 class Therapist(models.Model):
     """
@@ -10,9 +9,9 @@ class Therapist(models.Model):
     """
     #Multitenant
     reflexo = models.ForeignKey(
-        Reflexo, 
+        'reflexo.Reflexo', 
         on_delete=models.CASCADE, 
-        related_name="products",
+        related_name='+',
         null=True,      # permite que sea vacío temporalmente
         blank=True      # permite que el formulario del admin lo deje vacío
     )

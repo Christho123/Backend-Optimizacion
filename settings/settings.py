@@ -17,6 +17,14 @@ from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Ensure logs directory exists for FileHandler
+LOG_DIR = BASE_DIR / 'logs'
+try:
+    os.makedirs(LOG_DIR, exist_ok=True)
+except Exception:
+    # Fallback: if directory cannot be created, logging to file will be disabled at runtime
+    pass
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -53,6 +61,8 @@ INSTALLED_APPS = [
     'ubi_geo.apps.UbiGeoConfig',
     'users_profiles',
     'company_reports',
+    'reflexo',
+    'clinica',
 ]
 
 # Modelo de usuario personalizado
@@ -108,7 +118,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': config('DATABASE_NAME', default='reflexo'),
         'USER': config('DATABASE_USER', default='root'),
-        'PASSWORD': config('DATABASE_PASSWORD', default='123456'),
+        'PASSWORD': config('DATABASE_PASSWORD', default='mysql'),
         'HOST': config('DATABASE_HOST', default='127.0.0.1'),
         'PORT': config('DATABASE_PORT', default='3306'),
         'OPTIONS': {
@@ -200,9 +210,13 @@ CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=True, cast=boo
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://127.0.0.1:3000').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
-# Celery Configuration
-CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://localhost:6379/0')
+# Celery & Cache Configuration
+# If REDIS_URL is not provided, avoid Redis to prevent connection errors in local/dev
+REDIS_URL = config('REDIS_URL', default='')
+USE_REDIS = bool(REDIS_URL)
+
+CELERY_BROKER_URL = REDIS_URL or 'memory://'
+CELERY_RESULT_BACKEND = REDIS_URL or None
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -216,16 +230,26 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_RESULT_EXPIRES = 3600  # 1 hora
 
 # Cache Configuration
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://localhost:6379/1'),
+if USE_REDIS:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        }
     }
-}
-
-# Session Configuration
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-SESSION_CACHE_ALIAS = 'default'
+    # Session Configuration (use cache-backed sessions with Redis)
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
+else:
+    # Local/dev fallback: in-memory cache and DB sessions (no Redis required)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-local',
+        }
+    }
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+    # No SESSION_CACHE_ALIAS needed when using DB sessions
 
 # Logging Configuration
 LOGGING = {

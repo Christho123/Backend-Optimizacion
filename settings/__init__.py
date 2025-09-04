@@ -1,3 +1,6 @@
+import pymysql
+pymysql.install_as_MySQLdb()
+
 # Importar Celery para que se configure automáticamente
 from .celery import app as celery_app
 

@@ -1,6 +1,5 @@
 from django.db import models
 from django.utils import timezone
-from reflexo.models import Reflexo
 
 class ActiveHistoryManager(models.Manager):
     def get_queryset(self):
@@ -13,9 +12,9 @@ class History(models.Model):
     """
     #Multitenant
     reflexo = models.ForeignKey(
-        Reflexo, 
+        'reflexo.Reflexo', 
         on_delete=models.CASCADE, 
-        related_name="products",
+        related_name='+',
         null=True,      # permite que sea vacío temporalmente
         blank=True      # permite que el formulario del admin lo deje vacío
     )

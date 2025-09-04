@@ -9,9 +9,9 @@ class AppointmentStatus(models.Model):
     
     #Multitenant
     reflexo = models.ForeignKey(
-        Reflexo, 
+        'reflexo.Reflexo',
         on_delete=models.CASCADE, 
-        related_name="products",
+        related_name='+',
         null=True,      # permite que sea vacío temporalmente
         blank=True      # permite que el formulario del admin lo deje vacío
     )

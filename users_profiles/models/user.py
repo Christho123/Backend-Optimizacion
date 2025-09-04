@@ -4,7 +4,6 @@ from django.db import models
 from django.utils import timezone
 from django.contrib.auth.base_user import BaseUserManager
 from django.core.validators import FileExtensionValidator
-from reflexo.models import Reflexo
 
 
 
@@ -75,7 +74,7 @@ class User(AbstractUser):
 
     class Meta:
         db_table = 'users'
-        managed = False  # usamos la tabla existente
+        managed = True  # permitir que Django gestione/cree la tabla
         verbose_name = 'Usuario'
         verbose_name_plural = 'Usuarios'
 
