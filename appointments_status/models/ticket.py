@@ -1,5 +1,6 @@
 from django.db import models
 from decimal import Decimal
+from reflexo.models import Reflexo
 
 
 class Ticket(models.Model):
@@ -7,6 +8,14 @@ class Ticket(models.Model):
     Modelo para gestionar los tickets de las citas médicas.
     Basado en la estructura del módulo Laravel 05_appointments_status.
     """
+    #Multitenant
+    reflexo = models.ForeignKey(
+        Reflexo, 
+        on_delete=models.CASCADE, 
+        related_name="products",
+        null=True,      # permite que sea vacío temporalmente
+        blank=True      # permite que el formulario del admin lo deje vacío
+    )
     
     appointment = models.ForeignKey('Appointment', on_delete=models.CASCADE, verbose_name="Cita")
     

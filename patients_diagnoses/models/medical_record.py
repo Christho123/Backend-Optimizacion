@@ -1,11 +1,21 @@
 from django.db import models
 from django.utils import timezone
+from reflexo.models import Reflexo
 
 class MedicalRecord(models.Model):
     """
     Historial médico que relaciona pacientes con diagnósticos.
     Basado en la estructura de la tabla medical_records de la BD.
     """
+
+    #Multitenant
+    reflexo = models.ForeignKey(
+        Reflexo, 
+        on_delete=models.CASCADE, 
+        related_name="products",
+        null=True,      # permite que sea vacío temporalmente
+        blank=True      # permite que el formulario del admin lo deje vacío
+    )
     
     patient = models.ForeignKey('Patient', on_delete=models.CASCADE, verbose_name="Paciente")
     diagnose = models.ForeignKey('Diagnosis', on_delete=models.CASCADE, verbose_name="Diagnóstico")

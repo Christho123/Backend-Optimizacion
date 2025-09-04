@@ -2,6 +2,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from reflexo.models import Reflexo
 
 class UserVerificationCode(models.Model):
     # user_id es UNIQUE en la tabla → OneToOneField
@@ -11,6 +12,15 @@ class UserVerificationCode(models.Model):
         verbose_name='Usuario',
         db_column='user_id',
         related_name='verification_code',
+    )
+
+    #Multitenant
+    reflexo = models.ForeignKey(
+        Reflexo, 
+        on_delete=models.CASCADE, 
+        related_name="products",
+        null=True,      # permite que sea vacío temporalmente
+        blank=True      # permite que el formulario del admin lo deje vacío
     )
 
     code = models.CharField(max_length=255, blank=True, null=True, verbose_name='Código')

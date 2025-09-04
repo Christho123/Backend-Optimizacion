@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from reflexo.models import Reflexo
 
 class ActiveHistoryManager(models.Manager):
     def get_queryset(self):
@@ -10,6 +11,14 @@ class History(models.Model):
     Modelo para gestionar los historiales médicos.
     Basado en la estructura de la tabla histories de la BD.
     """
+    #Multitenant
+    reflexo = models.ForeignKey(
+        Reflexo, 
+        on_delete=models.CASCADE, 
+        related_name="products",
+        null=True,      # permite que sea vacío temporalmente
+        blank=True      # permite que el formulario del admin lo deje vacío
+    )
     
     # Relación con paciente
     patient = models.ForeignKey('patients_diagnoses.Patient', on_delete=models.CASCADE, verbose_name="Paciente")

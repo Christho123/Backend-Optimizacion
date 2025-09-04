@@ -7,6 +7,15 @@ class AppointmentStatus(models.Model):
     Basado en la estructura del módulo Laravel 05_appointments_status.
     """
     
+    #Multitenant
+    reflexo = models.ForeignKey(
+        Reflexo, 
+        on_delete=models.CASCADE, 
+        related_name="products",
+        null=True,      # permite que sea vacío temporalmente
+        blank=True      # permite que el formulario del admin lo deje vacío
+    )
+    
     name = models.CharField(
         max_length=50, 
         unique=True, 

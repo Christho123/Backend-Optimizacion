@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from reflexo.models import Reflexo
 
 
 class Appointment(models.Model):
@@ -7,7 +8,15 @@ class Appointment(models.Model):
     Modelo para gestionar las citas médicas.
     Basado en la estructura de la tabla appointments de la BD.
     """
-    
+    #Multitenant
+    reflexo = models.ForeignKey(
+        Reflexo, 
+        on_delete=models.CASCADE, 
+        related_name="products",
+        null=True,      # permite que sea vacío temporalmente
+        blank=True      # permite que el formulario del admin lo deje vacío
+    )
+
     # Relaciones con otros módulos
     history = models.ForeignKey('histories_configurations.History', on_delete=models.CASCADE, verbose_name="Historial")
     patient = models.ForeignKey('patients_diagnoses.Patient', on_delete=models.CASCADE, verbose_name="Paciente")

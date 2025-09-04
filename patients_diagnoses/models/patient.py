@@ -1,11 +1,21 @@
 from django.db import models
 from django.utils import timezone
+from reflexo.models import Reflexo
 
 class Patient(models.Model):
     """
     Modelo para gestionar los pacientes.
     Basado en la estructura de la tabla patients de la BD.
     """
+
+    #Multitenant
+    reflexo = models.ForeignKey(
+        Reflexo, 
+        on_delete=models.CASCADE, 
+        related_name="products",
+        null=True,      # permite que sea vacío temporalmente
+        blank=True      # permite que el formulario del admin lo deje vacío
+    )
     
     # Información personal
     document_number = models.CharField(max_length=20, unique=True, verbose_name="Número de documento")

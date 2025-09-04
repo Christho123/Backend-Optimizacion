@@ -1,12 +1,21 @@
 from django.db import models
 from ubi_geo.models import Region, Province, District
 from histories_configurations.models import DocumentType
+from reflexo.models import Reflexo
 
 class Therapist(models.Model):
     """
     Modelo para gestionar los terapeutas.
     Basado en la estructura de la tabla therapists de la BD.
     """
+    #Multitenant
+    reflexo = models.ForeignKey(
+        Reflexo, 
+        on_delete=models.CASCADE, 
+        related_name="products",
+        null=True,      # permite que sea vacío temporalmente
+        blank=True      # permite que el formulario del admin lo deje vacío
+    )
     
     # Datos personales
     document_type = models.ForeignKey(

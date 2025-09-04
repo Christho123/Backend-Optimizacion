@@ -4,6 +4,9 @@ from django.db import models
 from django.utils import timezone
 from django.contrib.auth.base_user import BaseUserManager
 from django.core.validators import FileExtensionValidator
+from reflexo.models import Reflexo
+
+
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
