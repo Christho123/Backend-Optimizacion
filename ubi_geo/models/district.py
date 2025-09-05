@@ -7,6 +7,16 @@ class District(models.Model):
     Basado en la estructura de la tabla districts de la BD.
     """
     
+    # Multitenant: cada distrito pertenece a un tenant (Reflexo)
+    reflexo = models.ForeignKey(
+        'reflexo.Reflexo',
+        on_delete=models.CASCADE,
+        related_name='+',
+        null=True,
+        blank=True,
+        verbose_name='Empresa/Tenant'
+    )
+
     name = models.CharField(max_length=255, verbose_name="Nombre")
     province = models.ForeignKey(Province, on_delete=models.CASCADE, verbose_name="Provincia")
     
@@ -20,6 +30,9 @@ class District(models.Model):
         verbose_name = "Distrito"
         verbose_name_plural = "Distritos"
         ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(fields=['reflexo', 'name'], name='uniq_district_per_reflexo_name')
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.province.name})"

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.conf import settings
 
 User = get_user_model()
 
@@ -113,17 +114,45 @@ class UserProfilePhotoSerializer(serializers.ModelSerializer):
     para evitar acumulación de archivos no utilizados.
     """
     
+    # Permite enviar una ruta/URL (JSON) o un archivo (multipart)
     photo_url = serializers.CharField(
+        required=False,
+        allow_blank=True,
         max_length=255,
-        help_text='URL de la foto de perfil'
+        help_text='Ruta relativa dentro de MEDIA_ROOT o URL comenzando con MEDIA_URL'
+    )
+    photo_file = serializers.ImageField(
+        required=False,
+        write_only=True,
+        help_text='Archivo de imagen enviado por multipart/form-data'
     )
     
     class Meta:
         model = User
-        fields = ['photo_url']
+        fields = ['photo_url', 'photo_file']
+
+    def validate(self, attrs):
+        # Requiere al menos uno de los dos
+        if not attrs.get('photo_file') and not attrs.get('photo_url'):
+            raise serializers.ValidationError("Debes enviar 'photo_file' (multipart) o 'photo_url' (JSON)")
+        return attrs
     
     def update(self, instance, validated_data):
         """Actualiza la foto de perfil del usuario"""
-        instance.photo_url = validated_data['photo_url']
+        # Si se envía archivo, priorizarlo
+        photo_file = validated_data.pop('photo_file', None)
+        if photo_file is not None:
+            instance.photo_url = photo_file
+        else:
+            raw_value = str(validated_data.get('photo_url', ''))
+            # Permitir que el cliente envíe rutas como "/media/users/photos/x.jpg" o "users/photos/x.jpg"
+            # 1) Si empieza con MEDIA_URL, eliminar ese prefijo
+            media_url = settings.MEDIA_URL if hasattr(settings, 'MEDIA_URL') else '/media/'
+            if raw_value.startswith(media_url):
+                raw_value = raw_value[len(media_url):]
+            # 2) Asegurar que sea relativo (sin barra inicial)
+            normalized = raw_value.lstrip('/\\')
+            # 3) Asignar por nombre de archivo relativo al storage
+            instance.photo_url.name = normalized
         instance.save()
         return instance

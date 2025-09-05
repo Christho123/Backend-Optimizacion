@@ -7,9 +7,19 @@ class PaymentType(models.Model):
     Basado en la estructura de la tabla payment_types de la BD.
     """
     
+    # Multitenant: cada tipo de pago pertenece a un tenant (Reflexo)
+    reflexo = models.ForeignKey(
+        'reflexo.Reflexo',
+        on_delete=models.CASCADE,
+        related_name='+',
+        null=True,
+        blank=True,
+        verbose_name='Empresa/Tenant'
+    )
+
     name = models.CharField(
         max_length=50,
-        unique=True,
+        unique=False,
         verbose_name="Nombre"
     )
 
@@ -34,3 +44,6 @@ class PaymentType(models.Model):
         verbose_name = "Tipo de Pago"
         verbose_name_plural = "Tipos de Pago"
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['reflexo', 'name'], name='uniq_payment_type_per_reflexo_name')
+        ]

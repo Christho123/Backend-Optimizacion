@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from ..models import AppointmentStatus
+from architect.utils.tenant import get_tenant
 
 
 class AppointmentStatusSerializer(serializers.ModelSerializer):
@@ -34,7 +35,12 @@ class AppointmentStatusSerializer(serializers.ModelSerializer):
         
         # Verificar que no exista otro estado con el mismo nombre
         instance = self.instance
-        if AppointmentStatus.objects.filter(name=value).exclude(id=instance.id if instance else None).exists():
+        # Limitar por tenant del request
+        tenant_id = get_tenant(self.context.get('request').user) if self.context.get('request') else None
+        qs = AppointmentStatus.objects.all()
+        if tenant_id is not None:
+            qs = qs.filter(reflexo_id=tenant_id)
+        if qs.filter(name=value).exclude(id=instance.id if instance else None).exists():
             raise serializers.ValidationError(
                 "Ya existe un estado de cita con este nombre."
             )

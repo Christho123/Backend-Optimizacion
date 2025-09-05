@@ -111,3 +111,10 @@ class User(AbstractUser):
     def is_global_admin(self) -> bool:
         """Admin global (ve todo): superuser o rol Admin si existiera el atributo."""
         return bool(getattr(self, 'is_superuser', False) or getattr(self, 'rol', None) == 'Admin')
+    
+    def get_completion_percentage(self):
+        """Calcula el porcentaje de completitud del perfil del usuario."""
+        required_fields = ['name', 'email', 'phone']
+        completed_fields = sum(1 for field in required_fields if getattr(self, field))
+        completion_percentage = (completed_fields / len(required_fields)) * 100
+        return round(completion_percentage, 2)

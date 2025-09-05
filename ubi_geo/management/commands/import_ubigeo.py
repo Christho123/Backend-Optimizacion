@@ -40,7 +40,7 @@ class Command(BaseCommand):
             Region.objects.all().delete()
 
         with transaction.atomic():
-            # REGIONS
+            # REGIONS (global defaults: reflexo=None)
             self.stdout.write("Importando regiones…")
             code_to_region = {}
             with files["regions"].open(encoding="utf-8", newline="") as f:
@@ -52,14 +52,14 @@ class Command(BaseCommand):
                     if not name:
                         s += 1; continue
                     obj, created = Region.objects.update_or_create(
-                        name=name, defaults={}
+                        name=name, reflexo=None, defaults={}
                     )
                     if code:
                         code_to_region[code] = obj
                     n += int(created); u += int(not created)
                 self.stdout.write(f"Regions: +{n} upd:{u} skip:{s}")
 
-            # PROVINCES
+            # PROVINCES (global defaults: reflexo=None)
             self.stdout.write("Importando provincias…")
             code_to_province = {}
             with files["provinces"].open(encoding="utf-8", newline="") as f:
@@ -73,14 +73,14 @@ class Command(BaseCommand):
                     if not (name and region):
                         s += 1; continue
                     obj, created = Province.objects.update_or_create(
-                        name=name, region=region, defaults={}
+                        name=name, region=region, reflexo=None, defaults={}
                     )
                     if code:
                         code_to_province[code] = obj
                     n += int(created); u += int(not created)
                 self.stdout.write(f"Provinces: +{n} upd:{u} skip:{s}")
 
-            # DISTRICTS
+            # DISTRICTS (global defaults: reflexo=None)
             self.stdout.write("Importando distritos…")
             n = u = s = 0
             with files["districts"].open(encoding="utf-8", newline="") as f:
@@ -92,7 +92,7 @@ class Command(BaseCommand):
                     if not (name and province):
                         s += 1; continue
                     _, created = District.objects.update_or_create(
-                        name=name, province=province, defaults={}
+                        name=name, province=province, reflexo=None, defaults={}
                     )
                     n += int(created); u += int(not created)
             self.stdout.write(f"Districts: +{n} upd:{u} skip:{s}")

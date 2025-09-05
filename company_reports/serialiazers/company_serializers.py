@@ -8,8 +8,8 @@ class CompanyDataSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CompanyData
-        fields = ['id', 'company_name', 'company_logo', 'logo_url', 'has_logo', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at', 'logo_url', 'has_logo']
+        fields = ['id', 'reflexo', 'company_name', 'company_logo', 'logo_url', 'has_logo', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'reflexo', 'created_at', 'updated_at', 'logo_url', 'has_logo']
 
     def get_logo_url(self, obj):
         if not obj.company_logo:

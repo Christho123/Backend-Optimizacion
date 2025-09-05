@@ -7,7 +7,17 @@ class Diagnosis(models.Model):
     Basado en la estructura de la tabla diagnoses de la BD.
     """
     
-    code = models.CharField(max_length=255, unique=True, verbose_name="Código")
+    # Multitenant: cada diagnóstico pertenece a un tenant (Reflexo)
+    reflexo = models.ForeignKey(
+        'reflexo.Reflexo',
+        on_delete=models.CASCADE,
+        related_name='+',
+        null=True,
+        blank=True,
+        verbose_name='Empresa/Tenant'
+    )
+
+    code = models.CharField(max_length=255, verbose_name="Código")
     name = models.CharField(max_length=255, verbose_name="Nombre")
     
     # Campos de auditoría
@@ -20,6 +30,9 @@ class Diagnosis(models.Model):
         verbose_name = 'Diagnóstico'
         verbose_name_plural = 'Diagnósticos'
         ordering = ['code']
+        constraints = [
+            models.UniqueConstraint(fields=['reflexo', 'code'], name='uniq_diagnosis_per_reflexo_code')
+        ]
     
     def soft_delete(self):
         """Soft delete del diagnóstico."""

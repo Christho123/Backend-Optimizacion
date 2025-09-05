@@ -18,7 +18,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'id', 'user_name', 'name', 'paternal_lastname', 'maternal_lastname',
             'sex', 'email', 'phone', 'photo_url', 'document_number', 'document_type',
             'country', 'account_statement', 'is_active', 'date_joined', 'last_login',
-            'completion_percentage'
+            'completion_percentage', 'user'
         ]
         read_only_fields = ['id', 'user_name', 'date_joined', 'last_login', 'account_statement']
     

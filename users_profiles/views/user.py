@@ -1,6 +1,7 @@
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.conf import settings
 
 # Django Core
 from django.shortcuts import get_object_or_404
@@ -13,6 +14,7 @@ from ..serializers.user import (
 )
 
 User = get_user_model()
+
 class UserDetailView(generics.RetrieveAPIView):
     """Vista para obtener detalles del usuario autenticado"""
     
@@ -61,9 +63,12 @@ class UserProfilePhotoView(APIView):
         
         if serializer.is_valid():
             serializer.save()
+            # Construir una URL segura en base a MEDIA_URL y el nombre relativo
+            name = request.user.photo_url.name if getattr(request.user, 'photo_url', None) else None
+            photo_url = f"{settings.MEDIA_URL}{name}" if name else None
             return Response({
                 'message': 'Foto de perfil actualizada exitosamente',
-                'photo_url': request.user.photo_url
+                'photo_url': photo_url
             }, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

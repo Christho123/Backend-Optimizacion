@@ -2,14 +2,19 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from ..models.medical_record import MedicalRecord
 from ..serializers.medical_record import MedicalRecordSerializer, MedicalRecordListSerializer
+from architect.utils.tenant import filter_by_tenant, get_tenant, is_global_admin
+from ..models.patient import Patient
+from ..models.diagnosis import Diagnosis
 
 class MedicalRecordService:
     """Servicio para gestionar historiales médicos."""
     
     @staticmethod
-    def get_all_medical_records(page=1, page_size=10, search=None, filters=None):
+    def get_all_medical_records(page=1, page_size=10, search=None, filters=None, user=None):
         """Obtiene todos los historiales médicos con paginación y filtros."""
         queryset = MedicalRecord.objects.filter(deleted_at__isnull=True)
+        if user is not None:
+            queryset = filter_by_tenant(queryset, user, field='reflexo')
         
         # Aplicar búsqueda
         if search:
@@ -56,28 +61,51 @@ class MedicalRecordService:
         }
     
     @staticmethod
-    def get_medical_record_by_id(record_id):
+    def get_medical_record_by_id(record_id, user=None):
         """Obtiene un historial médico por su ID."""
         try:
-            record = MedicalRecord.objects.get(id=record_id, deleted_at__isnull=True)
+            base = MedicalRecord.objects.filter(id=record_id, deleted_at__isnull=True)
+            if user is not None:
+                base = filter_by_tenant(base, user, field='reflexo')
+            record = base.get()
             return MedicalRecordSerializer(record).data
         except MedicalRecord.DoesNotExist:
             return None
     
     @staticmethod
-    def create_medical_record(record_data):
+    def create_medical_record(record_data, user=None):
         """Crea un nuevo historial médico."""
-        serializer = MedicalRecordSerializer(data=record_data)
+        data = dict(record_data)
+        # Asignar tenant automáticamente para no-admins
+        if user is not None and not is_global_admin(user):
+            tenant_id = get_tenant(user)
+            data['reflexo_id'] = tenant_id
+        # Validar que patient y diagnose pertenezcan al mismo tenant
+        patient_id = data.get('patient') or data.get('patient_id')
+        diagnose_id = data.get('diagnose') or data.get('diagnose_id')
+        if user is not None:
+            try:
+                filter_by_tenant(Patient.objects.all(), user, field='reflexo').get(pk=patient_id)
+            except Patient.DoesNotExist:
+                return None, {'patient_id': 'Paciente no pertenece a tu empresa'}
+            try:
+                filter_by_tenant(Diagnosis.objects.all(), user, field='reflexo').get(pk=diagnose_id)
+            except Diagnosis.DoesNotExist:
+                return None, {'diagnose_id': 'Diagnóstico no pertenece a tu empresa'}
+        serializer = MedicalRecordSerializer(data=data)
         if serializer.is_valid():
             record = serializer.save()
             return MedicalRecordSerializer(record).data
         return None, serializer.errors
     
     @staticmethod
-    def update_medical_record(record_id, record_data):
+    def update_medical_record(record_id, record_data, user=None):
         """Actualiza un historial médico existente."""
         try:
-            record = MedicalRecord.objects.get(id=record_id, deleted_at__isnull=True)
+            base = MedicalRecord.objects.filter(id=record_id, deleted_at__isnull=True)
+            if user is not None:
+                base = filter_by_tenant(base, user, field='reflexo')
+            record = base.get()
             serializer = MedicalRecordSerializer(record, data=record_data, partial=True)
             if serializer.is_valid():
                 record = serializer.save()
@@ -87,10 +115,13 @@ class MedicalRecordService:
             return None, {'error': 'Historial médico no encontrado'}
     
     @staticmethod
-    def delete_medical_record(record_id):
+    def delete_medical_record(record_id, user=None):
         """Elimina un historial médico (soft delete)."""
         try:
-            record = MedicalRecord.objects.get(id=record_id, deleted_at__isnull=True)
+            base = MedicalRecord.objects.filter(id=record_id, deleted_at__isnull=True)
+            if user is not None:
+                base = filter_by_tenant(base, user, field='reflexo')
+            record = base.get()
             record.soft_delete()
             return True
         except MedicalRecord.DoesNotExist:
@@ -107,12 +138,14 @@ class MedicalRecordService:
             return False
     
     @staticmethod
-    def get_patient_medical_history(patient_id, page=1, page_size=10):
+    def get_patient_medical_history(patient_id, page=1, page_size=10, user=None):
         """Obtiene el historial médico de un paciente específico."""
         queryset = MedicalRecord.objects.filter(
             patient_id=patient_id,
             deleted_at__isnull=True
         ).order_by('-diagnosis_date', '-created_at')
+        if user is not None:
+            queryset = filter_by_tenant(queryset, user, field='reflexo')
         
         # Paginación
         paginator = Paginator(queryset, page_size)
@@ -131,13 +164,14 @@ class MedicalRecordService:
         }
     
     @staticmethod
-    def get_diagnosis_statistics():
+    def get_diagnosis_statistics(user=None):
         """Obtiene estadísticas de diagnósticos."""
         from django.db.models import Count
         
-        stats = MedicalRecord.objects.filter(
-            deleted_at__isnull=True
-        ).values('diagnose__name').annotate(
+        base = MedicalRecord.objects.filter(deleted_at__isnull=True)
+        if user is not None:
+            base = filter_by_tenant(base, user, field='reflexo')
+        stats = base.values('diagnose__name').annotate(
             count=Count('id')
         ).order_by('-count')[:10]
         

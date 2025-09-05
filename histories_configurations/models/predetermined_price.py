@@ -7,6 +7,16 @@ class PredeterminedPrice(models.Model):
     Basado en la estructura de la tabla predetermined_prices de la BD.
     """
     
+    # Multitenant: cada precio predeterminado pertenece a un tenant (Reflexo)
+    reflexo = models.ForeignKey(
+        'reflexo.Reflexo',
+        on_delete=models.CASCADE,
+        related_name='+',
+        null=True,
+        blank=True,
+        verbose_name='Empresa/Tenant'
+    )
+
     name = models.CharField(
         max_length=100,
         verbose_name="Nombre"
@@ -34,3 +44,6 @@ class PredeterminedPrice(models.Model):
         verbose_name = "Precio Predeterminado"
         verbose_name_plural = "Precios Predeterminados"
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['reflexo', 'name'], name='uniq_predetermined_price_per_reflexo_name')
+        ]

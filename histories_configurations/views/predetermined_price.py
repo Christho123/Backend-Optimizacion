@@ -2,13 +2,19 @@ import json
 from django.http import JsonResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from ..models.predetermined_price import PredeterminedPrice
+from architect.utils.tenant import get_tenant
 
 @csrf_exempt
 def predetermined_prices_list(request):
     if request.method != "GET":
         return HttpResponseNotAllowed(["GET"])
     
+    tenant_id = get_tenant(request.user)
     qs = PredeterminedPrice.objects.filter(deleted_at__isnull=True)
+    if tenant_id is not None:
+        qs = qs.filter(reflexo_id=tenant_id)
+    else:
+        qs = qs.none()
     data = [{
         "id": p.id,
         "name": p.name,
@@ -33,7 +39,10 @@ def predetermined_price_create(request):
     if not name or price is None:
         return JsonResponse({"error": "Campos obligatorios faltantes"}, status=400)
     
-    p = PredeterminedPrice.objects.create(name=name, price=price)
+    tenant_id = get_tenant(request.user)
+    if tenant_id is None:
+        return JsonResponse({"error": "Usuario sin empresa asignada"}, status=403)
+    p = PredeterminedPrice.objects.create(name=name, price=price, reflexo_id=tenant_id)
     return JsonResponse({"id": p.id}, status=201)
 
 
@@ -48,7 +57,13 @@ def predetermined_price_update(request, pk):
         return JsonResponse({"error": "JSON inválido"}, status=400)
     
     try:
-        p = PredeterminedPrice.objects.filter(deleted_at__isnull=True).get(pk=pk)
+        tenant_id = get_tenant(request.user)
+        base = PredeterminedPrice.objects.filter(deleted_at__isnull=True)
+        if tenant_id is not None:
+            base = base.filter(reflexo_id=tenant_id)
+        else:
+            base = base.none()
+        p = base.get(pk=pk)
     except PredeterminedPrice.DoesNotExist:
         return JsonResponse({"error": "No encontrado"}, status=404)
     

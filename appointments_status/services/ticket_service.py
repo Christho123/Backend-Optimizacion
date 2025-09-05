@@ -2,6 +2,7 @@ from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
 from ..models import Ticket
+from architect.utils.tenant import filter_by_tenant, is_global_admin, get_tenant
 from ..serializers import TicketSerializer
 from django.utils import timezone
 import re
@@ -14,7 +15,7 @@ class TicketService:
     """
     
     @transaction.atomic
-    def create(self, data):
+    def create(self, data, user=None):
         """
         Crea un nuevo ticket.
         
@@ -39,6 +40,10 @@ class TicketService:
                 data['ticket_number'] = self.generate_ticket_number()
             
             # Crear el ticket
+            # Aislar por tenant: si viene user, forzar reflexo
+            if user and not is_global_admin(user):
+                data = dict(data)
+                data['reflexo_id'] = get_tenant(user)
             ticket = Ticket.objects.create(**data)
             serializer = TicketSerializer(ticket)
             
@@ -53,7 +58,7 @@ class TicketService:
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    def get_by_id(self, ticket_id):
+    def get_by_id(self, ticket_id, user=None):
         """
         Obtiene un ticket por su ID.
         
@@ -64,7 +69,10 @@ class TicketService:
             Response: Respuesta con el ticket o error si no existe
         """
         try:
-            ticket = Ticket.objects.get(id=ticket_id, is_active=True)
+            qs = Ticket.objects.filter(is_active=True)
+            if user:
+                qs = filter_by_tenant(qs, user, field='reflexo')
+            ticket = qs.get(id=ticket_id)
             serializer = TicketSerializer(ticket)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Ticket.DoesNotExist:
@@ -79,7 +87,7 @@ class TicketService:
             )
     
     @transaction.atomic
-    def update(self, ticket_id, data):
+    def update(self, ticket_id, data, user=None):
         """
         Actualiza un ticket existente.
         
@@ -91,7 +99,10 @@ class TicketService:
             Response: Respuesta con el ticket actualizado o error
         """
         try:
-            ticket = Ticket.objects.get(id=ticket_id, is_active=True)
+            qs = Ticket.objects.filter(is_active=True)
+            if user:
+                qs = filter_by_tenant(qs, user, field='reflexo')
+            ticket = qs.get(id=ticket_id)
             
             # Actualizar campos
             for field, value in data.items():
@@ -117,7 +128,7 @@ class TicketService:
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    def delete(self, ticket_id):
+    def delete(self, ticket_id, user=None):
         """
         Elimina un ticket (soft delete).
         
@@ -128,7 +139,10 @@ class TicketService:
             Response: Respuesta de confirmación o error
         """
         try:
-            ticket = Ticket.objects.get(id=ticket_id, is_active=True)
+            qs = Ticket.objects.filter(is_active=True)
+            if user:
+                qs = filter_by_tenant(qs, user, field='reflexo')
+            ticket = qs.get(id=ticket_id)
             ticket.soft_delete()
             
             return Response({
@@ -146,7 +160,7 @@ class TicketService:
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    def list_all(self, filters=None, pagination=None):
+    def list_all(self, filters=None, pagination=None, user=None):
         """
         Lista todos los tickets con filtros opcionales.
         
@@ -159,6 +173,8 @@ class TicketService:
         """
         try:
             queryset = Ticket.objects.filter(is_active=True)
+            if user:
+                queryset = filter_by_tenant(queryset, user, field='reflexo')
             
             # Aplicar filtros
             if filters:
@@ -191,7 +207,7 @@ class TicketService:
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    def get_by_ticket_number(self, ticket_number):
+    def get_by_ticket_number(self, ticket_number, user=None):
         """
         Obtiene un ticket por su número.
         
@@ -202,7 +218,10 @@ class TicketService:
             Response: Respuesta con el ticket o error si no existe
         """
         try:
-            ticket = Ticket.objects.get(ticket_number=ticket_number, is_active=True)
+            qs = Ticket.objects.filter(ticket_number=ticket_number, is_active=True)
+            if user:
+                qs = filter_by_tenant(qs, user, field='reflexo')
+            ticket = qs.get()
             serializer = TicketSerializer(ticket)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Ticket.DoesNotExist:
@@ -216,7 +235,7 @@ class TicketService:
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    def get_paid_tickets(self, filters=None):
+    def get_paid_tickets(self, filters=None, user=None):
         """
         Obtiene los tickets pagados.
         
@@ -228,6 +247,8 @@ class TicketService:
         """
         try:
             queryset = Ticket.objects.filter(status='paid', is_active=True)
+            if user:
+                queryset = filter_by_tenant(queryset, user, field='reflexo')
             
             # Aplicar filtros adicionales
             if filters:
@@ -250,7 +271,7 @@ class TicketService:
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    def get_pending_tickets(self, filters=None):
+    def get_pending_tickets(self, filters=None, user=None):
         """
         Obtiene los tickets pendientes.
         
@@ -262,6 +283,8 @@ class TicketService:
         """
         try:
             queryset = Ticket.objects.filter(status='pending', is_active=True)
+            if user:
+                queryset = filter_by_tenant(queryset, user, field='reflexo')
             
             # Aplicar filtros adicionales
             if filters:

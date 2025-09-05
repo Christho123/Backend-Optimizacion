@@ -5,6 +5,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from ..models import AppointmentStatus
 from ..serializers import AppointmentStatusSerializer
+from architect.utils.tenant import filter_by_tenant, get_tenant, is_global_admin
+from architect.utils.tenant import filter_by_tenant
 
 
 class AppointmentStatusViewSet(viewsets.ModelViewSet):
@@ -26,6 +28,8 @@ class AppointmentStatusViewSet(viewsets.ModelViewSet):
         Filtra el queryset según los parámetros de la request.
         """
         queryset = AppointmentStatus.objects.all()
+        # Aislamiento por tenant
+        queryset = filter_by_tenant(queryset, self.request.user, field='reflexo')
         
         # Filtro por estado activo
         is_active = self.request.query_params.get('is_active', None)
@@ -33,6 +37,23 @@ class AppointmentStatusViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
         
         return queryset
+
+    def perform_create(self, serializer):
+        # Asignar el tenant del usuario al crear
+        from architect.utils.tenant import get_tenant, is_global_admin
+        tenant_id = get_tenant(self.request.user)
+        serializer.save(reflexo_id=tenant_id)
+
+    def perform_update(self, serializer):
+        # Evitar que no-admin cambie de tenant
+        from architect.utils.tenant import is_global_admin, get_tenant
+        data = dict(serializer.validated_data)
+        if not is_global_admin(self.request.user):
+            data.pop('reflexo', None)
+            data.pop('reflexo_id', None)
+            serializer.save(**data)
+        else:
+            serializer.save()
     
     @action(detail=False, methods=['get'])
     def active(self, request):

@@ -1,6 +1,6 @@
 # architect/utils/tenant.py
 from typing import Optional
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Q
 import logging
 logger = logging.getLogger(__name__)
 
@@ -92,3 +92,19 @@ def assign_tenant_on_create(data: dict, user, field: str = 'reflexo') -> dict:
     data = dict(data)
     data[f"{field}_id"] = tenant_id
     return data
+
+
+def filter_by_tenant_including_global(qs: QuerySet, user, field: str = 'reflexo') -> QuerySet:
+    """
+    Like filter_by_tenant, but also includes global defaults (where reflexo IS NULL).
+
+    - Global admins bypass filtering (see is_global_admin)
+    - If user has a tenant -> include records with that tenant OR reflexo IS NULL
+    - If user has no tenant -> only include global (IS NULL) to avoid leaks
+    """
+    if is_global_admin(user):
+        return qs
+    tenant_id = get_tenant(user)
+    if tenant_id is None:
+        return qs.filter(**{f"{field}__isnull": True})
+    return qs.filter(Q(**{f"{field}_id": tenant_id}) | Q(**{f"{field}__isnull": True}))

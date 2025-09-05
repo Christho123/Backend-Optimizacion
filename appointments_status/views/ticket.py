@@ -6,6 +6,11 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from ..models import Ticket
 from ..serializers import TicketSerializer
 from ..services import TicketService
+from architect.utils.tenant import (
+    filter_by_tenant,
+    assign_tenant_on_create,
+    is_global_admin,
+)
 
 
 class TicketViewSet(viewsets.ModelViewSet):
@@ -44,6 +49,8 @@ class TicketViewSet(viewsets.ModelViewSet):
         Filtra el queryset según los parámetros de la request.
         """
         queryset = Ticket.objects.all()
+        # Aislamiento por tenant
+        queryset = filter_by_tenant(queryset, self.request.user, field='reflexo')
         
         # Filtros adicionales
         payment_date = self.request.query_params.get('payment_date', None)
@@ -59,21 +66,32 @@ class TicketViewSet(viewsets.ModelViewSet):
         """
         Crea un nuevo ticket.
         """
-        return self.service.create(request.data)
+        payload = assign_tenant_on_create(request.data, request.user, field='reflexo')
+        return self.service.create(payload, user=request.user)
     
     def update(self, request, *args, **kwargs):
         """
         Actualiza un ticket existente.
         """
         ticket_id = kwargs.get('pk')
-        return self.service.update(ticket_id, request.data)
+        # Asegurar pertenencia al tenant
+        try:
+            _ = self.get_queryset().get(pk=ticket_id)
+        except Ticket.DoesNotExist:
+            return Response({'error': 'Ticket no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        return self.service.update(ticket_id, request.data, user=request.user)
     
     def destroy(self, request, *args, **kwargs):
         """
         Elimina un ticket (soft delete).
         """
         ticket_id = kwargs.get('pk')
-        return self.service.delete(ticket_id)
+        # Asegurar pertenencia al tenant
+        try:
+            _ = self.get_queryset().get(pk=ticket_id)
+        except Ticket.DoesNotExist:
+            return Response({'error': 'Ticket no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        return self.service.delete(ticket_id, user=request.user)
     
     def list(self, request, *args, **kwargs):
         """
@@ -95,7 +113,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             pagination['page'] = int(page) if page else 1
             pagination['page_size'] = int(page_size) if page_size else 10
         
-        return self.service.list_all(filters, pagination)
+        return self.service.list_all(filters, pagination, user=request.user)
     
     @action(detail=False, methods=['get'])
     def paid(self, request):
@@ -108,7 +126,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             if value:
                 filters[field] = value
         
-        return self.service.get_paid_tickets(filters)
+        return self.service.get_paid_tickets(filters, user=request.user)
     
     @action(detail=False, methods=['get'])
     def pending(self, request):
@@ -121,7 +139,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             if value:
                 filters[field] = value
         
-        return self.service.get_pending_tickets(filters)
+        return self.service.get_pending_tickets(filters, user=request.user)
     
     @action(detail=False, methods=['get'])
     def cancelled(self, request):
@@ -161,7 +179,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             )
         
         filters = {'payment_method': payment_method}
-        return self.service.list_all(filters)
+        return self.service.list_all(filters, user=request.user)
     
     @action(detail=False, methods=['get'])
     def by_ticket_number(self, request):
@@ -175,17 +193,18 @@ class TicketViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        return self.service.get_by_ticket_number(ticket_number)
+        return self.service.get_by_ticket_number(ticket_number, user=request.user)
     
     @action(detail=False, methods=['get'])
     def statistics(self, request):
         """
         Obtiene estadísticas de tickets.
         """
-        total_tickets = Ticket.objects.count()
-        paid_tickets = Ticket.objects.filter(status='paid').count()
-        pending_tickets = Ticket.objects.filter(status='pending').count()
-        cancelled_tickets = Ticket.objects.filter(status='cancelled').count()
+        base_qs = filter_by_tenant(Ticket.objects.all(), request.user, field='reflexo')
+        total_tickets = base_qs.count()
+        paid_tickets = base_qs.filter(status='paid').count()
+        pending_tickets = base_qs.filter(status='pending').count()
+        cancelled_tickets = base_qs.filter(status='cancelled').count()
         
         # Calcular montos totales
         from django.db.models import Sum

@@ -17,8 +17,7 @@ class AppointmentStatus(models.Model):
     )
     
     name = models.CharField(
-        max_length=50, 
-        unique=True, 
+        max_length=50,
         verbose_name="Nombre del estado"
     )
     description = models.TextField(
@@ -39,6 +38,9 @@ class AppointmentStatus(models.Model):
         ordering = ['name']
         indexes = [
             models.Index(fields=['name']),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['reflexo', 'name'], name='uniq_appt_status_per_reflexo_name')
         ]
     
     def __str__(self):

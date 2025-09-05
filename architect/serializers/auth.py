@@ -20,12 +20,16 @@ class LoginSerializer(serializers.Serializer):
         if not email or not password:
             raise serializers.ValidationError(_('Se requieres email y contraseña.'))
 
-        user = authenticate(request=self.context.get('request'), user_name=email, password=password)
+        # Django's default ModelBackend expects 'username' and 'password'.
+        # If your custom user model uses a different USERNAME_FIELD (e.g., 'user_name' or 'email'),
+        # the ModelBackend still expects 'username' here, and internally will map it to USERNAME_FIELD.
+        user = authenticate(request=self.context.get('request'), username=email, password=password)
 
         if user is None:
             raise AuthenticationFailed(_('Credenciales inválidas.'))
         
-        if user.is_active is None:
+        # Standard is_active check
+        if not getattr(user, 'is_active', True):
             raise AuthenticationFailed(_('Cuenta no activada.'))
         
         refresh = RefreshToken.for_user(user)
@@ -39,13 +43,30 @@ class LoginSerializer(serializers.Serializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    # Required account fields
+    email = serializers.EmailField(required=True)
+    user_name = serializers.CharField(required=True, max_length=150)
+    document_number = serializers.CharField(required=True, max_length=20)
+    name = serializers.CharField(required=True, max_length=100)
+    paternal_lastname = serializers.CharField(required=True, max_length=100)
+    maternal_lastname = serializers.CharField(required=True, max_length=100)
+
+    # Password fields
     password = serializers.CharField(write_only=True, required=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True, required=True)
-    user_name = serializers.CharField(required=True, max_length=150)
 
     class Meta:
         model = User
-        fields = ('user_name', 'email', 'password', 'password_confirm')
+        fields = (
+            'email',
+            'user_name',
+            'document_number',
+            'name',
+            'paternal_lastname',
+            'maternal_lastname',
+            'password',
+            'password_confirm',
+        )
 
     def validate_password(self, value):
         # Validación personalizada de contraseña

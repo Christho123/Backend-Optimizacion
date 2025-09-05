@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from company_reports.models.company import CompanyData
 from company_reports.serialiazers.company_serializers import CompanyDataSerializer
 from company_reports.services.companay_services import CompanyService
+from architect.utils.tenant import filter_by_tenant, assign_tenant_on_create, get_tenant
 
 
 class CompanyDataViewSet(viewsets.ModelViewSet):
@@ -18,6 +19,11 @@ class CompanyDataViewSet(viewsets.ModelViewSet):
     queryset = CompanyData.objects.all()
     serializer_class = CompanyDataSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_queryset(self):
+        """Restringe por tenant salvo admin global."""
+        base_qs = CompanyData.objects.all()
+        return filter_by_tenant(base_qs, self.request.user)
 
     @action(detail=True, methods=['post', 'put'])
     def upload_logo(self, request, pk=None):
@@ -58,10 +64,12 @@ class CompanyDataViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], parser_classes=[MultiPartParser, FormParser, JSONParser])
     def store(self, request):
         """Crea o actualiza datos de la empresa."""
-        data = request.data
+        data = request.data.copy()
+        data = assign_tenant_on_create(data, request.user)
+        tenant_id = get_tenant(request.user)
     
         try:
-            company = CompanyService.store(data)
+            company = CompanyService.store(data, tenant_id)
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
@@ -100,10 +108,12 @@ class CompanyDataViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         data = request.data.copy()  # Hacer una copia para poder modificar
         data['id'] = kwargs.get('pk')  # Añadir el ID para que store sepa que es una actualización
+        data = assign_tenant_on_create(data, request.user)
+        tenant_id = get_tenant(request.user)
 
         try:
-            # Usar CompanyService para manejar la actualización
-            company = CompanyService.store(data)
+            # Usar CompanyService para manejar la actualización con validación de tenant
+            company = CompanyService.store(data, tenant_id)
             serializer = self.get_serializer(company)
             return Response(serializer.data)
         except ValueError as e:

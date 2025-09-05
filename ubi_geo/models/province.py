@@ -7,6 +7,16 @@ class Province(models.Model):
     Basado en la estructura de la tabla provinces de la BD.
     """
     
+    # Multitenant: cada provincia pertenece a un tenant (Reflexo)
+    reflexo = models.ForeignKey(
+        'reflexo.Reflexo',
+        on_delete=models.CASCADE,
+        related_name='+',
+        null=True,
+        blank=True,
+        verbose_name='Empresa/Tenant'
+    )
+
     name = models.CharField(max_length=255, verbose_name="Nombre")
     region = models.ForeignKey(Region, on_delete=models.CASCADE, verbose_name="Región")
     
@@ -20,6 +30,9 @@ class Province(models.Model):
         verbose_name = "Provincia"
         verbose_name_plural = "Provincias"
         ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(fields=['reflexo', 'name'], name='uniq_province_per_reflexo_name')
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.region.name})"

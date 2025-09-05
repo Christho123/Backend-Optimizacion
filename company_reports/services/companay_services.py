@@ -93,10 +93,13 @@ class CompanyBusinessService:
     """Responsable exclusivamente de la lógica de negocio de empresas."""
     
     @staticmethod
-    def get_company(company_id):
-        """Obtiene una empresa por ID."""
+    def get_company(company_id, tenant_id=None):
+        """Obtiene una empresa por ID, restringida por tenant si se provee tenant_id."""
         try:
-            return CompanyData.objects.get(pk=company_id)
+            qs = CompanyData.objects.all()
+            if tenant_id is not None:
+                qs = qs.filter(reflexo_id=tenant_id)
+            return qs.get(pk=company_id)
         except CompanyData.DoesNotExist:
             return None
     
@@ -108,10 +111,12 @@ class CompanyBusinessService:
         return company_name.strip()
     
     @staticmethod
-    def create_company(company_name):
-        """Crea una nueva empresa."""
+    def create_company(company_name, tenant_id=None):
+        """Crea una nueva empresa asignada al tenant si se provee tenant_id."""
         company = CompanyData()
         company.company_name = company_name
+        if tenant_id is not None:
+            company.reflexo_id = tenant_id
         company.save()
         return company
     
@@ -129,23 +134,25 @@ class CompanyService:
     """
     
     @staticmethod
-    def show(company_id):
-        """Retorna los datos de la empresa."""
-        return CompanyBusinessService.get_company(company_id)
+    def show(company_id, tenant_id=None):
+        """Retorna los datos de la empresa, validando tenant cuando aplique."""
+        return CompanyBusinessService.get_company(company_id, tenant_id)
     
     @staticmethod
-    def store(data):
-        """Crea o actualiza datos de la empresa."""
+    def store(data, tenant_id=None):
+        """Crea o actualiza datos de la empresa, restringiendo por tenant y asignándolo en creación."""
         company_id = data.get('id')
         
         try:
-            # Obtener o crear empresa
+            # Obtener o crear empresa con validación de tenant
             if company_id:
-                company = CompanyBusinessService.get_company(company_id)
+                company = CompanyBusinessService.get_company(company_id, tenant_id)
                 if not company:
                     raise ValueError("Empresa no encontrada")
             else:
                 company = CompanyData()
+                if tenant_id is not None:
+                    company.reflexo_id = tenant_id
             
             # Validar y procesar nombre
             company_name = CompanyBusinessService.validate_company_name(data.get('company_name', ''))

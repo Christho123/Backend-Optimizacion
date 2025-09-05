@@ -2,6 +2,7 @@
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from ubi_geo.models.province import Province
 from ubi_geo.serializers.province import ProvinceSerializer
+from architect.utils.tenant import filter_by_tenant_including_global
 
 
 class ProvinceViewSet(ReadOnlyModelViewSet):
@@ -16,6 +17,7 @@ class ProvinceViewSet(ReadOnlyModelViewSet):
 
     def get_queryset(self):
         qs = Province.objects.select_related("region").filter(deleted_at__isnull=True).order_by("name")
+        qs = filter_by_tenant_including_global(qs, self.request.user, field='reflexo')
         region_id = self.request.query_params.get("region")
         if region_id:
             qs = qs.filter(region_id=region_id)

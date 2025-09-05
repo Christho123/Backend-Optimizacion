@@ -4,6 +4,60 @@ from .models.diagnosis import Diagnosis
 from .models.medical_record import MedicalRecord
 from architect.utils.tenant import is_global_admin, get_tenant, filter_by_tenant
 
+
+class BaseTenantAdmin(admin.ModelAdmin):
+    """Admin base para aislar por tenant (reflexo)."""
+    tenant_field_name = 'reflexo'
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if is_global_admin(request.user):
+            return qs
+        return filter_by_tenant(qs, request.user, field=self.tenant_field_name)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        from django.db.models import ForeignKey
+        if isinstance(db_field, ForeignKey):
+            if is_global_admin(request.user):
+                return super().formfield_for_foreignkey(db_field, request, **kwargs)
+            # Limitar el selector del propio tenant siempre al tenant del usuario
+            if db_field.name == self.tenant_field_name:
+                tenant_id = get_tenant(request.user)
+                if tenant_id is not None:
+                    kwargs['queryset'] = db_field.remote_field.model.objects.filter(pk=tenant_id)
+            else:
+                # Para otros FKs, si el modelo relacionado tiene campo tenant, filtrarlo
+                rel_model = db_field.remote_field.model
+                if hasattr(rel_model, self.tenant_field_name):
+                    kwargs['queryset'] = filter_by_tenant(rel_model.objects.all(), request.user, field=self.tenant_field_name)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def get_readonly_fields(self, request, obj=None):
+        ro = list(super().get_readonly_fields(request, obj))
+        # El campo tenant solo de solo lectura para no-admins
+        if not is_global_admin(request.user) and self.tenant_field_name not in ro:
+            ro.append(self.tenant_field_name)
+        # Agregar timestamps si existen
+        try:
+            model_fields = {f.name for f in self.model._meta.get_fields()}
+        except Exception:
+            model_fields = set()
+        for fname in ('created_at', 'updated_at', 'deleted_at'):
+            if fname in model_fields and fname not in ro:
+                ro.append(fname)
+        return tuple(ro)
+
+    def save_model(self, request, obj, form, change):
+        # Forzar tenant solo para no-admins; admin puede elegir
+        tenant_id = get_tenant(request.user)
+        if not is_global_admin(request.user):
+            if tenant_id is not None:
+                setattr(obj, f"{self.tenant_field_name}_id", tenant_id)
+        else:
+            if getattr(obj, f"{self.tenant_field_name}_id", None) is None and tenant_id is not None:
+                setattr(obj, f"{self.tenant_field_name}_id", tenant_id)
+        super().save_model(request, obj, form, change)
+
 class CurrentTenantReflexoFilter(admin.SimpleListFilter):
     title = 'reflexo'
     parameter_name = 'reflexo'
@@ -28,7 +82,7 @@ class CurrentTenantReflexoFilter(admin.SimpleListFilter):
         return queryset
 
 @admin.register(Patient)
-class PatientAdmin(admin.ModelAdmin):
+class PatientAdmin(BaseTenantAdmin):
     list_display = (
         'id', 'document_number', 'name', 'paternal_lastname', 'maternal_lastname',
         'phone1', 'email', 'reflexo'
@@ -39,7 +93,7 @@ class PatientAdmin(admin.ModelAdmin):
     list_filter = (
         'sex', 'region', 'province', 'district', 'document_type', 'created_at', 'deleted_at'
     )
-    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+    # readonly_fields dinámicos en BaseTenantAdmin
 
     def get_list_filter(self, request):
         base = list(super().get_list_filter(request))
@@ -48,34 +102,13 @@ class PatientAdmin(admin.ModelAdmin):
             return tuple(['reflexo'] + base)
         return tuple([CurrentTenantReflexoFilter] + base)
 
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        if is_global_admin(request.user):
-            return qs
-        return filter_by_tenant(qs, request.user, field='reflexo')
+    # get_queryset provisto por BaseTenantAdmin
 
-    def get_readonly_fields(self, request, obj=None):
-        ro = list(super().get_readonly_fields(request, obj))
-        if not is_global_admin(request.user):
-            ro.append('reflexo')
-        return tuple(ro)
+    # readonly_fields manejados en BaseTenantAdmin
 
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == 'reflexo' and not is_global_admin(request.user):
-            tenant_id = get_tenant(request.user)
-            if tenant_id is not None:
-                from reflexo.models import Reflexo
-                kwargs['queryset'] = Reflexo.objects.filter(id=tenant_id)
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    # FKs filtrados por BaseTenantAdmin
 
-    def save_model(self, request, obj, form, change):
-        if not is_global_admin(request.user):
-            tenant_id = get_tenant(request.user)
-            if tenant_id is None:
-                from django.core.exceptions import ValidationError
-                raise ValidationError("Tu usuario no tiene empresa asignada (reflexo). Comunícate con el administrador.")
-            obj.reflexo_id = tenant_id
-        super().save_model(request, obj, form, change)
+    # Guardado con tenant por BaseTenantAdmin
 
     def changelist_view(self, request, extra_context=None):
         # Si el usuario de empresa no tiene tenant asignado, mostrar advertencia clara
@@ -88,18 +121,18 @@ class PatientAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context)
 
 @admin.register(Diagnosis)
-class DiagnosisAdmin(admin.ModelAdmin):
+class DiagnosisAdmin(BaseTenantAdmin):
     list_display = ('code', 'name', 'created_at')
     search_fields = ('code', 'name')
     ordering = ('code',)
-    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+    # readonly_fields dinámicos en BaseTenantAdmin
+
 
 @admin.register(MedicalRecord)
-class MedicalRecordAdmin(admin.ModelAdmin):
+class MedicalRecordAdmin(BaseTenantAdmin):
     list_display = ('patient', 'diagnose', 'diagnosis_date', 'status', 'created_at')
     list_filter = ('status', 'diagnosis_date', 'created_at', 'deleted_at')
     search_fields = ('patient__name', 'patient__document_number', 'diagnose__name', 'diagnose__code')
-    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     ordering = ('-diagnosis_date', '-created_at')
     
     fieldsets = (
@@ -122,13 +155,15 @@ class MedicalRecordAdmin(admin.ModelAdmin):
         qs = super().get_queryset(request).select_related('patient', 'diagnose')
         if is_global_admin(request.user):
             return qs
-        # filtra por el tenant del paciente
-        return qs.filter(patient__reflexo_id=get_tenant(request.user))
+        return filter_by_tenant(qs, request.user, field='reflexo')
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        # Limita los pacientes a los del tenant
-        if db_field.name == 'patient' and not is_global_admin(request.user):
+        # Limita los pacientes y diagnósticos al tenant del usuario
+        if not is_global_admin(request.user):
             tenant_id = get_tenant(request.user)
             if tenant_id is not None:
-                kwargs['queryset'] = Patient.objects.filter(reflexo_id=tenant_id)
+                if db_field.name == 'patient':
+                    kwargs['queryset'] = Patient.objects.filter(reflexo_id=tenant_id)
+                elif db_field.name == 'diagnose':
+                    kwargs['queryset'] = Diagnosis.objects.filter(reflexo_id=tenant_id)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
