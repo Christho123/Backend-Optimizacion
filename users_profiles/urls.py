@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from django.conf import settings
 from django.conf.urls.static import static
-from .views.user import UserDetailView, UserUpdateView, UserProfilePhotoView, UserSearchView, UserProfileView
+from .views.user import UserDetailView, UserUpdateView, UserProfilePhotoView, UserSearchView, UserProfileView, UserDeleteView
 from .views.profile import ProfileDetailView, ProfileCreateView, PublicProfileView, ProfileSettingsView, ProfileCompletionView, ProfileSearchView
 from .views.password import PasswordChangeView, PasswordResetView, PasswordResetConfirmView, PasswordStrengthView, PasswordHistoryView, PasswordPolicyView
 from .views.verification import VerificationCodeView, EmailChangeView, EmailChangeConfirmView, VerificationCodeResendView, VerificationStatusView, EmailVerificationView, EmailVerificationConfirmView
@@ -15,6 +15,7 @@ urlpatterns = [
     # User management
     path('users/me/', UserDetailView.as_view(), name='user-detail'),
     path('users/me/update/', UserUpdateView.as_view(), name='user-update'),
+    path('users/me/delete/', UserDeleteView.as_view(), name='user-delete'),
     path('users/me/photo/', UserProfilePhotoView.as_view(), name='user-photo'),
     path('users/search/', UserSearchView.as_view(), name='user-search'),
     path('users/profile/', UserProfileView.as_view(), name='user-profile'),

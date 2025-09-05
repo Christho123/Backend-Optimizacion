@@ -54,6 +54,45 @@ def history_create(request):
         return JsonResponse({"error": "Error al crear el historial"}, status=500)
 
 @csrf_exempt
+def history_update(request, pk):
+    """Actualizar historial (PUT/PATCH)"""
+    if request.method not in ["PUT", "PATCH"]:
+        return HttpResponseNotAllowed(["PUT", "PATCH"])
+    
+    try:
+        h = History.objects.filter(deleted_at__isnull=True).get(pk=pk)
+    except History.DoesNotExist:
+        return JsonResponse({"error": "No encontrado"}, status=404)
+    
+    # Manejo de JSON inválido
+    try:
+        payload = json.loads(request.body.decode())
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "JSON inválido"}, status=400)
+    
+    # Actualizar campos permitidos
+    allowed_fields = ['testimony', 'private_observation', 'observation', 'height', 'weight', 'last_weight', 'menstruation', 'diu_type', 'gestation']
+    
+    for field in allowed_fields:
+        if field in payload:
+            setattr(h, field, payload[field])
+    
+    try:
+        h.save()
+        return JsonResponse({
+            "status": "updated",
+            "id": h.id,
+            "data": {
+                "testimony": h.testimony,
+                "observation": h.observation,
+                "height": float(h.height) if h.height else None,
+                "weight": float(h.weight) if h.weight else None,
+            }
+        })
+    except Exception as e:
+        return JsonResponse({"error": "Error al actualizar el historial"}, status=500)
+
+@csrf_exempt
 def history_delete(request, pk):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])

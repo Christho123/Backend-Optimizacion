@@ -110,6 +110,28 @@ class UserProfileView(generics.RetrieveAPIView):
     def get_object(self):
         """Retorna el usuario autenticado"""
         return self.request.user
+
+class UserDeleteView(APIView):
+    """Vista para eliminar (soft delete) el usuario autenticado"""
+    
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def delete(self, request):
+        """Elimina el usuario autenticado (soft delete)"""
+        user = request.user
+        
+        # Verificar que no sea superuser
+        if user.is_superuser:
+            return Response({
+                'error': 'No se puede eliminar un superusuario'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Realizar soft delete
+        user.soft_delete()
+        
+        return Response({
+            'message': 'Usuario eliminado exitosamente'
+        }, status=status.HTTP_200_OK)
     
     def get_serializer_context(self):
         """Agrega contexto adicional al serializer"""

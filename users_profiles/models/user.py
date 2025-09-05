@@ -107,6 +107,18 @@ class User(AbstractUser):
         self.email_verified_at = timezone.now()
         self.save(update_fields=['email_verified_at'])
 
+    def clean(self):
+        """Validación del modelo."""
+        from django.core.exceptions import ValidationError
+        
+        # Validar que usuarios no superuser tengan tenant asignado
+        if not self.is_superuser and not self.reflexo_id:
+            raise ValidationError({
+                'reflexo': 'Los usuarios deben tener un tenant asignado (excepto superusuarios)'
+            })
+        
+        super().clean()
+
     @property
     def is_global_admin(self) -> bool:
         """Admin global (ve todo): superuser o rol Admin si existiera el atributo."""

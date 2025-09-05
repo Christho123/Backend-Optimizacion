@@ -33,15 +33,22 @@ def document_type_delete(request, pk):
 
 @csrf_exempt
 def document_type_edit(request, pk):
-    if request.method != "PUT":
-        return HttpResponseNotAllowed(["PUT"])
+    if request.method not in ["PUT", "PATCH"]:
+        return HttpResponseNotAllowed(["PUT", "PATCH"])
 
     try:
         dt = DocumentType.objects.get(pk=pk, deleted_at__isnull=True)
     except DocumentType.DoesNotExist:
         return JsonResponse({"error": "No encontrado"}, status=404)
+    
     payload = json.loads(request.body.decode() or "{}")
-    dt.name = payload.get("name", dt.name)
+    
+    # Para PUT, actualizar todos los campos; para PATCH, solo los proporcionados
+    if request.method == "PUT":
+        dt.name = payload.get("name", dt.name)
+    else:  # PATCH
+        if "name" in payload:
+            dt.name = payload["name"]
 
     dt.save()
     return JsonResponse({
