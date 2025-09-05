@@ -47,8 +47,8 @@ def payment_type_delete(request, pk):
 
 @csrf_exempt
 def payment_type_edit(request, pk):
-    if request.method != "PUT":
-        return HttpResponseNotAllowed(["PUT"])
+    if request.method not in ["PUT", "PATCH"]:
+        return HttpResponseNotAllowed(["PUT", "PATCH"])
 
     try:
         tenant_id = get_tenant(request.user)
@@ -62,8 +62,13 @@ def payment_type_edit(request, pk):
         return JsonResponse({"error": "No encontrado"}, status=404)
 
     payload = json.loads(request.body.decode() or "{}")
-
-    pt.name = payload.get("name", pt.name)
+    
+    # Para PUT, actualizar todos los campos; para PATCH, solo los proporcionados
+    if request.method == "PUT":
+        pt.name = payload.get("name", pt.name)
+    else:  # PATCH
+        if "name" in payload:
+            pt.name = payload["name"]
 
     pt.save()
     return JsonResponse({

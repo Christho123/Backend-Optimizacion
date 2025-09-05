@@ -1,0 +1,1579 @@
+{
+	"info": {
+		"_postman_id": "12345678-1234-1234-1234-123456789012",
+		"name": "Backend-Optimizacion API",
+		"description": "Colección completa de endpoints para el sistema de gestión de clínicas con multi-tenancy",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Autenticación",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"usuarioa@gmail.com\",\n    \"password\": \"tu_password\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/architect/auth/login/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"architect",
+								"auth",
+								"login",
+								""
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('access_token', response.access);",
+									"    pm.environment.set('refresh_token', response.refresh);",
+									"    console.log('Token guardado:', response.access);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Registro",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"nuevo@email.com\",\n    \"password\": \"password123\",\n    \"user_name\": \"usuario_nuevo\",\n    \"document_number\": \"12345678\",\n    \"name\": \"Nombre\",\n    \"paternal_lastname\": \"Apellido\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/architect/auth/register/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"architect",
+								"auth",
+								"register",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "👤 Gestión de Usuarios",
+			"item": [
+				{
+					"name": "Obtener mi perfil",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/profiles/users/me/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"profiles",
+								"users",
+								"me",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Actualizar mi perfil",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Nuevo Nombre\",\n    \"phone\": \"987654321\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/profiles/users/me/update/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"profiles",
+								"users",
+								"me",
+								"update",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Eliminar mi usuario",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/profiles/users/me/delete/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"profiles",
+								"users",
+								"me",
+								"delete",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Buscar usuarios",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/profiles/users/search/?q=nombre",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"profiles",
+								"users",
+								"search",
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "nombre"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🩺 Pacientes",
+			"item": [
+				{
+					"name": "Listar pacientes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/patients/patients/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"patients",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Crear paciente",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"document_number\": \"87654321\",\n    \"name\": \"Juan\",\n    \"paternal_lastname\": \"Pérez\",\n    \"maternal_lastname\": \"García\",\n    \"email\": \"juan@email.com\",\n    \"phone1\": \"987654321\",\n    \"ocupation\": \"Estudiante\",\n    \"health_condition\": \"Buen estado\",\n    \"region\": 1,\n    \"province\": 1,\n    \"district\": 1,\n    \"document_type\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/patients/patients/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"patients",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Obtener paciente específico",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/patients/patients/1/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"patients",
+								"1",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Actualizar paciente",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Juan Carlos\",\n    \"phone1\": \"999888777\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/patients/patients/1/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"patients",
+								"1",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Buscar pacientes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/patients/patients/search/?q=juan",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"patients",
+								"search",
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "juan"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "👨‍⚕️ Terapeutas",
+			"item": [
+				{
+					"name": "Listar terapeutas",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/therapists/therapists/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"therapists",
+								"therapists",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Crear terapeuta",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"document_type\": 1,\n    \"document_number\": \"12345678\",\n    \"last_name_paternal\": \"García\",\n    \"last_name_maternal\": \"López\",\n    \"first_name\": \"María\",\n    \"email\": \"maria@email.com\",\n    \"phone\": \"987654321\",\n    \"region\": 1,\n    \"province\": 1,\n    \"district\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/therapists/therapists/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"therapists",
+								"therapists",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Obtener terapeuta específico",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/therapists/therapists/1/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"therapists",
+								"therapists",
+								"1",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📅 Citas",
+			"item": [
+				{
+					"name": "Listar citas",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/appointments/appointments/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"appointments",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Crear cita",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"patient\": 1,\n    \"therapist\": 1,\n    \"appointment_date\": \"2024-01-15T10:00:00Z\",\n    \"hour\": \"10:00:00\",\n    \"ailments\": \"Dolor de espalda\",\n    \"diagnosis\": \"Contractura muscular\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/appointments/appointments/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"appointments",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Obtener cita específica",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/appointments/appointments/1/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"appointments",
+								"1",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Actualizar cita",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"diagnosis\": \"Diagnóstico actualizado\",\n    \"observation\": \"Observaciones adicionales\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/appointments/appointments/1/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"appointments",
+								"1",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📋 Historiales",
+			"item": [
+				{
+					"name": "Listar historiales",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/configurations/histories/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"histories",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Crear historial",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"patient\": 1,\n    \"testimony\": true,\n    \"height\": 1.75,\n    \"weight\": 70.5,\n    \"observation\": \"Paciente en buen estado\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/configurations/histories/create/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"histories",
+								"create",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Actualizar historial",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"testimony\": true,\n    \"height\": 1.80,\n    \"weight\": 75.5,\n    \"observation\": \"Paciente en excelente estado\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/configurations/histories/1/update/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"histories",
+								"1",
+								"update",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Eliminar historial",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/configurations/histories/1/delete/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"histories",
+								"1",
+								"delete",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🏥 Diagnósticos",
+			"item": [
+				{
+					"name": "Listar diagnósticos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/patients/diagnoses/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"diagnoses",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Crear diagnóstico",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Contractura muscular\",\n    \"description\": \"Tensión en músculos de la espalda\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/patients/diagnoses/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"diagnoses",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🎫 Tickets",
+			"item": [
+				{
+					"name": "Listar tickets",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/appointments/tickets/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"tickets",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Crear ticket",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"appointment\": 1,\n    \"amount\": 50.00,\n    \"payment_method\": \"Efectivo\",\n    \"description\": \"Consulta de reflexología\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/appointments/tickets/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"tickets",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "⚙️ Configuraciones",
+			"item": [
+				{
+					"name": "Listar tipos de documento",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/configurations/document_types/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"document_types",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Crear tipo de documento",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"DNI\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/configurations/document_types/create/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"document_types",
+								"create",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Actualizar tipo de documento",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Documento Nacional de Identidad\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/configurations/document_types/1/edit/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"document_types",
+								"1",
+								"edit",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Eliminar tipo de documento",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/configurations/document_types/1/delete/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"document_types",
+								"1",
+								"delete",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Listar tipos de pago",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/configurations/payment_types/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"payment_types",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Crear tipo de pago",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Efectivo\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/configurations/payment_types/create/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"payment_types",
+								"create",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Listar precios predeterminados",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/configurations/predetermined_prices/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"predetermined_prices",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Crear precio predeterminado",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Consulta General\",\n    \"price\": 50.00\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/configurations/predetermined_prices/create/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"predetermined_prices",
+								"create",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Actualizar precio predeterminado",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"price\": 60.00\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/configurations/predetermined_prices/1/update/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"predetermined_prices",
+								"1",
+								"update",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Eliminar precio predeterminado",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/configurations/predetermined_prices/1/delete/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"configurations",
+								"predetermined_prices",
+								"1",
+								"delete",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🌍 Ubicaciones Geográficas",
+			"item": [
+				{
+					"name": "Listar regiones",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/locations/regions/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"locations",
+								"regions",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Listar provincias",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/locations/provinces/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"locations",
+								"provinces",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Listar distritos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/locations/districts/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"locations",
+								"districts",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📊 Reportes",
+			"item": [
+				{
+					"name": "Estadísticas generales",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/company/statistics/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"company",
+								"statistics",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Citas por terapeuta",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/company/reports/appointments-per-therapist/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"company",
+								"reports",
+								"appointments-per-therapist",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Pacientes por terapeuta",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/company/reports/patients-by-therapist/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"company",
+								"reports",
+								"patients-by-therapist",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Caja diaria",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/company/reports/daily-cash/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"company",
+								"reports",
+								"daily-cash",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📤 Exportaciones",
+			"item": [
+				{
+					"name": "Exportar PDF - Citas por terapeuta",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/company/exports/pdf/citas-terapeuta/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"company",
+								"exports",
+								"pdf",
+								"citas-terapeuta",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Exportar Excel - Citas en rango",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/company/exports/excel/citas-rango/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"company",
+								"exports",
+								"excel",
+								"citas-rango",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🧪 Pruebas Multi-Tenancy",
+			"item": [
+				{
+					"name": "Login Clínica A",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"usuarioa@gmail.com\",\n    \"password\": \"tu_password\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/architect/auth/login/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"architect",
+								"auth",
+								"login",
+								""
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('access_token_clinica_a', response.access);",
+									"    console.log('Token Clínica A guardado:', response.access);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Login Clínica B",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"usuariob@gmail.com\",\n    \"password\": \"tu_password\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/architect/auth/login/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"architect",
+								"auth",
+								"login",
+								""
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('access_token_clinica_b', response.access);",
+									"    console.log('Token Clínica B guardado:', response.access);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Login Admin Principal",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"jorge@gmail.com\",\n    \"password\": \"tu_password\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/architect/auth/login/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"architect",
+								"auth",
+								"login",
+								""
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('access_token_admin', response.access);",
+									"    console.log('Token Admin guardado:', response.access);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Pacientes - Clínica A",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token_clinica_a}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/patients/patients/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"patients",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Pacientes - Clínica B",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token_clinica_b}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/patients/patients/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"patients",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Pacientes - Admin (ve todo)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token_admin}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/patients/patients/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"patients",
+								""
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		}
+	]
+}

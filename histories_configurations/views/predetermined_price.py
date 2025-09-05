@@ -48,8 +48,8 @@ def predetermined_price_create(request):
 
 @csrf_exempt
 def predetermined_price_update(request, pk):
-    if request.method != "POST":
-        return HttpResponseNotAllowed(["POST"])
+    if request.method not in ["PUT", "PATCH", "POST"]:
+        return HttpResponseNotAllowed(["PUT", "PATCH", "POST"])
     
     try:
         payload = json.loads(request.body.decode())
@@ -70,10 +70,17 @@ def predetermined_price_update(request, pk):
     name = payload.get("name")
     price = payload.get("price")
 
-    if name is not None:
-        p.name = name
-    if price is not None:
-        p.price = price
+    # Para PUT, actualizar todos los campos; para PATCH/POST, solo los proporcionados
+    if request.method == "PUT":
+        if name is not None:
+            p.name = name
+        if price is not None:
+            p.price = price
+    else:  # PATCH o POST
+        if name is not None:
+            p.name = name
+        if price is not None:
+            p.price = price
     
     p.save()
     return JsonResponse({
@@ -85,8 +92,8 @@ def predetermined_price_update(request, pk):
 
 @csrf_exempt
 def predetermined_price_delete(request, pk):
-    if request.method != "POST":
-        return HttpResponseNotAllowed(["POST"])
+    if request.method not in ["DELETE", "POST"]:
+        return HttpResponseNotAllowed(["DELETE", "POST"])
     
     try:
         p = PredeterminedPrice.objects.filter(deleted_at__isnull=True).get(pk=pk)

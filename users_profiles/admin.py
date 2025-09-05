@@ -3,6 +3,7 @@ from django.contrib.admin.sites import NotRegistered
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.db.models import Q
+from architect.utils.tenant import is_global_admin, get_tenant, filter_by_tenant
 
 from .models.user_verification_code import UserVerificationCode
 
@@ -29,6 +30,7 @@ class CustomUserAdmin(BaseUserAdmin):
         "paternal_lastname",
         "maternal_lastname",
         "sex",
+        "reflexo",            # <- mostrar tenant
         "is_active",
         "is_staff",
         "created_at",         # usa tus campos reales
@@ -40,6 +42,7 @@ class CustomUserAdmin(BaseUserAdmin):
         "is_staff",
         "is_superuser",
         "sex",
+        "reflexo",            # <- filtrar por tenant
         "created_at",
         "updated_at",
     )
@@ -76,6 +79,10 @@ class CustomUserAdmin(BaseUserAdmin):
                 "email_verified_at",
             ),
         }),
+        ("Multi-tenant", {
+            "fields": ("reflexo",),
+            "description": "Empresa/Tenant al que pertenece el usuario"
+        }),
         ("Permisos", {
             "fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions"),
         }),
@@ -99,6 +106,32 @@ class CustomUserAdmin(BaseUserAdmin):
 
     # Opcional: mejora UX en permisos
     filter_horizontal = ("groups", "user_permissions")
+
+    # === Multi-tenant methods ===
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if is_global_admin(request.user):
+            return qs
+        return filter_by_tenant(qs, request.user, field='reflexo')
+
+    def get_readonly_fields(self, request, obj=None):
+        ro = list(super().get_readonly_fields(request, obj))
+        if not is_global_admin(request.user):
+            ro.append('reflexo')
+        return tuple(ro)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'reflexo' and not is_global_admin(request.user):
+            tenant_id = get_tenant(request.user)
+            if tenant_id is not None:
+                from reflexo.models import Reflexo
+                kwargs['queryset'] = Reflexo.objects.filter(id=tenant_id)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def save_model(self, request, obj, form, change):
+        if not is_global_admin(request.user):
+            obj.reflexo_id = get_tenant(request.user)
+        super().save_model(request, obj, form, change)
 
 
 # =======================
