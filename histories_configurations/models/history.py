@@ -31,9 +31,9 @@ class History(models.Model):
     last_weight = models.DecimalField(max_digits=6, decimal_places=3, blank=True, null=True, verbose_name="Último peso")
     
     # Información específica
-    menstruation = models.BooleanField(default=True, verbose_name="Menstruación")
+    menstruation = models.BooleanField(default=False, verbose_name="Menstruación")
     diu_type = models.CharField(max_length=255, blank=True, null=True, verbose_name="Tipo de DIU")
-    gestation = models.BooleanField(default=True, verbose_name="Gestación")
+    gestation = models.BooleanField(default=False, verbose_name="Gestación")
 
     # Campos de auditoría
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de creación")

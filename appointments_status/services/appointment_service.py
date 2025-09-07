@@ -26,13 +26,42 @@ class AppointmentService:
         """
         try:
             # Validar datos requeridos
-            required_fields = ['patient', 'therapist', 'appointment_date', 'hour']
+            required_fields = ['patient', 'therapist', 'history', 'appointment_date', 'hour']
             for field in required_fields:
                 if field not in data:
                     return Response(
                         {'error': f'El campo {field} es requerido'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
+            
+            # Validar que los objetos relacionados existan
+            from patients_diagnoses.models import Patient
+            from therapists.models import Therapist
+            from histories_configurations.models import History
+            
+            try:
+                patient = Patient.objects.get(id=data['patient'], deleted_at__isnull=True)
+            except Patient.DoesNotExist:
+                return Response(
+                    {'error': f'El paciente con ID {data["patient"]} no existe'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            try:
+                therapist = Therapist.objects.get(id=data['therapist'], deleted_at__isnull=True)
+            except Therapist.DoesNotExist:
+                return Response(
+                    {'error': f'El terapeuta con ID {data["therapist"]} no existe'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            try:
+                history = History.objects.get(id=data['history'], deleted_at__isnull=True)
+            except History.DoesNotExist:
+                return Response(
+                    {'error': f'El historial con ID {data["history"]} no existe'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             
             # Crear la cita
             appointment = Appointment.objects.create(**data)
@@ -368,5 +397,60 @@ class AppointmentService:
         except Exception as e:
             return Response(
                 {'error': f'Error al verificar disponibilidad: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def get_or_create_history_for_patient(self, patient_id, tenant_id=None):
+        """
+        Obtiene o crea un historial médico para un paciente.
+        
+        Args:
+            patient_id (int): ID del paciente
+            tenant_id (int): ID del tenant (opcional)
+            
+        Returns:
+            Response: Respuesta con el historial médico
+        """
+        try:
+            from patients_diagnoses.models import Patient
+            from histories_configurations.models import History
+            
+            # Verificar que el paciente existe
+            try:
+                patient = Patient.objects.get(id=patient_id, deleted_at__isnull=True)
+            except Patient.DoesNotExist:
+                return Response(
+                    {'error': f'El paciente con ID {patient_id} no existe'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Buscar historial existente
+            history_query = History.objects.filter(patient=patient, deleted_at__isnull=True)
+            if tenant_id:
+                history_query = history_query.filter(reflexo_id=tenant_id)
+            
+            history = history_query.first()
+            
+            if not history:
+                # Crear nuevo historial
+                history_data = {
+                    'patient': patient,
+                    'testimony': True,
+                    'menstruation': True,
+                    'gestation': True,
+                }
+                if tenant_id:
+                    history_data['reflexo_id'] = tenant_id
+                
+                history = History.objects.create(**history_data)
+            
+            return Response({
+                'history_id': history.id,
+                'message': 'Historial médico obtenido/creado exitosamente'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al obtener/crear historial: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

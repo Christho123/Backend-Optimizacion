@@ -94,13 +94,15 @@ def history_update(request, pk):
 
 @csrf_exempt
 def history_delete(request, pk):
-    if request.method != "POST":
-        return HttpResponseNotAllowed(["POST"])
+    if request.method != "DELETE":
+        return HttpResponseNotAllowed(["DELETE"])
     
     try:
         h = History.objects.filter(deleted_at__isnull=True).get(pk=pk)
     except History.DoesNotExist:
         return JsonResponse({"error":"No encontrado"}, status=404)
-    
+        
+    #h.delete()
+
     h.soft_delete()  # Debe marcar deleted_at = timezone.now()
     return JsonResponse({"status": "deleted"})

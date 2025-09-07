@@ -260,3 +260,27 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         appointment.save(update_fields=['appointment_date', 'hour', 'updated_at'])
         
         return Response({'message': 'Cita reprogramada exitosamente'})
+    
+    @action(detail=False, methods=['get'])
+    def get_history_for_patient(self, request):
+        """
+        Obtiene o crea un historial médico para un paciente.
+        """
+        patient_id = request.query_params.get('patient_id')
+        
+        if not patient_id:
+            return Response(
+                {'error': 'Se requiere el parámetro patient_id'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            patient_id = int(patient_id)
+        except ValueError:
+            return Response(
+                {'error': 'El patient_id debe ser un número entero'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        tenant_id = None if is_global_admin(request.user) else getattr(request.user, 'reflexo_id', None)
+        return self.service.get_or_create_history_for_patient(patient_id, tenant_id)

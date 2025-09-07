@@ -8,7 +8,6 @@ from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
 
-
 class LoginSerializer(serializers.Serializer):
     email = serializers.CharField(max_length=255, required=True, write_only=True)
     password = serializers.CharField(required=True, write_only=True)
@@ -20,13 +19,13 @@ class LoginSerializer(serializers.Serializer):
         if not email or not password:
             raise serializers.ValidationError(_('Se requieres email y contraseña.'))
 
-        user = authenticate(request=self.context.get('request'), user_name=email, password=password)
+        user = authenticate(request=self.context.get('request'), username=email, password=password)
 
         if user is None:
             raise AuthenticationFailed(_('Credenciales inválidas.'))
         
-        if user.is_active is None:
-            raise AuthenticationFailed(_('Cuenta no activada.'))
+        if not user.is_active:
+            raise AuthenticationFailed(('Cuenta no activada.'))
         
         refresh = RefreshToken.for_user(user)
 

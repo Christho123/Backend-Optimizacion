@@ -1,4 +1,4 @@
-aname: Django CI with MySQL
+name: Django CI with MySQL
 
 on:
   push:
