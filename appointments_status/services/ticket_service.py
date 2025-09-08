@@ -1,7 +1,7 @@
 from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
-from ..models import Ticket
+from ..models import Ticket, Appointment
 from architect.utils.tenant import filter_by_tenant, is_global_admin, get_tenant
 from ..serializers import TicketSerializer
 from django.utils import timezone
@@ -35,16 +35,66 @@ class TicketService:
                         status=status.HTTP_400_BAD_REQUEST
                     )
             
+            payload = dict(data)
+
             # Generar número de ticket único si no se proporciona
-            if 'ticket_number' not in data:
-                data['ticket_number'] = self.generate_ticket_number()
-            
-            # Crear el ticket
+            if 'ticket_number' not in payload:
+                payload['ticket_number'] = self.generate_ticket_number()
+
+            # Convertir appointment → appointment_id (FK por ID)
+            try:
+                payload['appointment_id'] = int(payload.pop('appointment'))
+            except (KeyError, ValueError, TypeError):
+                return Response({'error': 'appointment debe ser un ID entero'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validar que la cita exista y (si aplica) pertenezca al mismo tenant
+            try:
+                appt = Appointment.objects.get(id=payload['appointment_id'])
+            except Appointment.DoesNotExist:
+                return Response({'error': 'La cita (appointment) no existe'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validación de tenant: un usuario no admin solo puede crear tickets para citas de su tenant
+            if user and not is_global_admin(user):
+                tenant_id = get_tenant(user)
+                if appt.reflexo_id and appt.reflexo_id != tenant_id:
+                    return Response({'error': 'La cita no pertenece a tu tenant'}, status=status.HTTP_403_FORBIDDEN)
+
+            # Normalizar amount a decimal positivo
+            try:
+                amt = payload.get('amount', None)
+                if amt is None:
+                    return Response({'error': 'amount es requerido'}, status=status.HTTP_400_BAD_REQUEST)
+                payload['amount'] = float(amt)
+                if payload['amount'] <= 0:
+                    return Response({'error': 'amount debe ser mayor a 0'}, status=status.HTTP_400_BAD_REQUEST)
+            except (ValueError, TypeError):
+                return Response({'error': 'amount debe ser numérico'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Normalizar payment_method (aceptar alias en inglés → español)
+            method = str(payload.get('payment_method', '')).lower()
+            aliases = {
+                'cash': 'efectivo',
+                'card': 'tarjeta',
+                'transfer': 'transferencia',
+                'check': 'cheque',
+                'cheque': 'cheque',
+                'efectivo': 'efectivo',
+                'tarjeta': 'tarjeta',
+                'transferencia': 'transferencia',
+                'otro': 'otro',
+                'other': 'otro',
+            }
+            payload['payment_method'] = aliases.get(method, method)
+
             # Aislar por tenant: si viene user, forzar reflexo
             if user and not is_global_admin(user):
-                data = dict(data)
-                data['reflexo_id'] = get_tenant(user)
-            ticket = Ticket.objects.create(**data)
+                payload['reflexo_id'] = get_tenant(user)
+
+            try:
+                ticket = Ticket.objects.create(**payload)
+            except Exception as db_exc:
+                # Errores de integridad / FK -> responder 400 en vez de 500
+                return Response({'error': f'No se pudo crear el ticket: {str(db_exc)}'}, status=status.HTTP_400_BAD_REQUEST)
             serializer = TicketSerializer(ticket)
             
             return Response({
@@ -130,25 +180,15 @@ class TicketService:
     
     def delete(self, ticket_id, user=None):
         """
-        Elimina un ticket (soft delete).
-        
-        Args:
-            ticket_id (int): ID del ticket a eliminar
-            
-        Returns:
-            Response: Respuesta de confirmación o error
+        Elimina un ticket de forma definitiva (hard delete).
         """
         try:
-            qs = Ticket.objects.filter(is_active=True)
+            qs = Ticket.objects.all()
             if user:
                 qs = filter_by_tenant(qs, user, field='reflexo')
             ticket = qs.get(id=ticket_id)
-            ticket.soft_delete()
-            
-            return Response({
-                'message': 'Ticket eliminado exitosamente'
-            }, status=status.HTTP_200_OK)
-            
+            ticket.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except Ticket.DoesNotExist:
             return Response(
                 {'error': 'Ticket no encontrado'},

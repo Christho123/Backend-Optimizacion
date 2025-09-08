@@ -102,7 +102,10 @@ class PatientAdmin(BaseTenantAdmin):
             return tuple(['reflexo'] + base)
         return tuple([CurrentTenantReflexoFilter] + base)
 
-    # get_queryset provisto por BaseTenantAdmin
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Ocultar por defecto los eliminados (soft delete)
+        return qs.filter(deleted_at__isnull=True)
 
     # readonly_fields manejados en BaseTenantAdmin
 
@@ -153,17 +156,26 @@ class MedicalRecordAdmin(BaseTenantAdmin):
     
     def get_queryset(self, request):
         qs = super().get_queryset(request).select_related('patient', 'diagnose')
+        # Ocultar por defecto los registros soft-deleted
+        qs = qs.filter(deleted_at__isnull=True)
         if is_global_admin(request.user):
             return qs
         return filter_by_tenant(qs, request.user, field='reflexo')
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        # Limita los pacientes y diagnósticos al tenant del usuario
-        if not is_global_admin(request.user):
-            tenant_id = get_tenant(request.user)
-            if tenant_id is not None:
-                if db_field.name == 'patient':
-                    kwargs['queryset'] = Patient.objects.filter(reflexo_id=tenant_id)
-                elif db_field.name == 'diagnose':
-                    kwargs['queryset'] = Diagnosis.objects.filter(reflexo_id=tenant_id)
+        # Limitar SIEMPRE a registros no eliminados
+        if db_field.name == 'patient':
+            base_qs = Patient.objects.filter(deleted_at__isnull=True)
+            if not is_global_admin(request.user):
+                tenant_id = get_tenant(request.user)
+                if tenant_id is not None:
+                    base_qs = base_qs.filter(reflexo_id=tenant_id)
+            kwargs['queryset'] = base_qs
+        elif db_field.name == 'diagnose':
+            base_qs = Diagnosis.objects.filter(deleted_at__isnull=True)
+            if not is_global_admin(request.user):
+                tenant_id = get_tenant(request.user)
+                if tenant_id is not None:
+                    base_qs = base_qs.filter(reflexo_id=tenant_id)
+            kwargs['queryset'] = base_qs
         return super().formfield_for_foreignkey(db_field, request, **kwargs)

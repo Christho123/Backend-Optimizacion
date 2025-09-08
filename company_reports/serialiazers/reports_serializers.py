@@ -95,7 +95,7 @@ class PDFContextSerializer(serializers.Serializer):
     """Serializa contexto para templates PDF."""
     
     date = serializers.CharField()
-    data = serializers.DictField(required=False)
+    data = serializers.JSONField(required=False)
     title = serializers.CharField()
     total = serializers.FloatField(required=False)
 

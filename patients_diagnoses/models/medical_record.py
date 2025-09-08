@@ -38,7 +38,8 @@ class MedicalRecord(models.Model):
         verbose_name = 'Historial Médico'
         verbose_name_plural = 'Historiales Médicos'
         ordering = ['-diagnosis_date', '-created_at']
-        unique_together = ['patient', 'diagnose']
+        # Permite múltiples registros para el mismo paciente/diagnóstico en fechas distintas
+        unique_together = ['patient', 'diagnose', 'diagnosis_date']
     
     def soft_delete(self):
         """Soft delete del historial médico."""

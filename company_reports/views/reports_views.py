@@ -11,6 +11,7 @@ from company_reports.serialiazers.reports_serializers import (
     DailyPaidTicketsSerializer,
 )
 from django.shortcuts import render
+from django.template import TemplateDoesNotExist
 # from django_xhtml2pdf.utils import pdf_decorator
 from django.views.decorators.csrf import csrf_exempt
 import xlsxwriter
@@ -188,7 +189,10 @@ class PDFExportView:
         }
         context_serializer = PDFContextSerializer(context_data)
         context = context_serializer.data
-        return render(request, "pdf_templates/citas_terapeuta.html", context)
+        try:
+            return render(request, "pdf_templates/citas_terapeuta.html", context)
+        except TemplateDoesNotExist:
+            return JsonResponse(context, safe=False)
 
     @staticmethod
     # @pdf_decorator(pdfname="pacientes_por_terapeuta.pdf")
@@ -209,7 +213,10 @@ class PDFExportView:
         }
         context_serializer = PDFContextSerializer(context_data)
         context = context_serializer.data
-        return render(request, "pdf_templates/pacientes_terapeuta.html", context)
+        try:
+            return render(request, "pdf_templates/pacientes_terapeuta.html", context)
+        except TemplateDoesNotExist:
+            return JsonResponse(context, safe=False)
 
     @staticmethod
     # @pdf_decorator(pdfname="resumen_caja.pdf")
@@ -234,7 +241,10 @@ class PDFExportView:
         }
         context_serializer = PDFContextSerializer(context_data)
         context = context_serializer.data
-        return render(request, "pdf_templates/resumen_caja.html", context)
+        try:
+            return render(request, "pdf_templates/resumen_caja.html", context)
+        except TemplateDoesNotExist:
+            return JsonResponse(context, safe=False)
 
     @staticmethod
     # @pdf_decorator(pdfname="caja_chica_mejorada.pdf")
@@ -255,7 +265,10 @@ class PDFExportView:
         }
         context_serializer = PDFContextSerializer(context_data)
         context = context_serializer.data
-        return render(request, "pdf_templates/caja_chica_mejorada.html", context)
+        try:
+            return render(request, "pdf_templates/caja_chica_mejorada.html", context)
+        except TemplateDoesNotExist:
+            return JsonResponse(context, safe=False)
 
     @staticmethod
     # @pdf_decorator(pdfname="tickets_pagados.pdf")
@@ -276,7 +289,10 @@ class PDFExportView:
         }
         context_serializer = PDFContextSerializer(context_data)
         context = context_serializer.data
-        return render(request, "pdf_templates/tickets_pagados.html", context)
+        try:
+            return render(request, "pdf_templates/tickets_pagados.html", context)
+        except TemplateDoesNotExist:
+            return JsonResponse(context, safe=False)
 
 
 # ===========================

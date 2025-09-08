@@ -12,7 +12,11 @@ class MedicalRecordService:
     @staticmethod
     def get_all_medical_records(page=1, page_size=10, search=None, filters=None, user=None):
         """Obtiene todos los historiales médicos con paginación y filtros."""
-        queryset = MedicalRecord.objects.filter(deleted_at__isnull=True)
+        queryset = MedicalRecord.objects.filter(
+            deleted_at__isnull=True,
+            patient__deleted_at__isnull=True,
+            diagnose__deleted_at__isnull=True,
+        )
         if user is not None:
             queryset = filter_by_tenant(queryset, user, field='reflexo')
         
@@ -64,7 +68,12 @@ class MedicalRecordService:
     def get_medical_record_by_id(record_id, user=None):
         """Obtiene un historial médico por su ID."""
         try:
-            base = MedicalRecord.objects.filter(id=record_id, deleted_at__isnull=True)
+            base = MedicalRecord.objects.filter(
+                id=record_id,
+                deleted_at__isnull=True,
+                patient__deleted_at__isnull=True,
+                diagnose__deleted_at__isnull=True,
+            )
             if user is not None:
                 base = filter_by_tenant(base, user, field='reflexo')
             record = base.get()
@@ -76,40 +85,70 @@ class MedicalRecordService:
     def create_medical_record(record_data, user=None):
         """Crea un nuevo historial médico."""
         data = dict(record_data)
-        # Asignar tenant automáticamente para no-admins
-        if user is not None and not is_global_admin(user):
-            tenant_id = get_tenant(user)
-            data['reflexo_id'] = tenant_id
-        # Validar que patient y diagnose pertenezcan al mismo tenant
+        # IDs esperados (no nombres)
         patient_id = data.get('patient') or data.get('patient_id')
         diagnose_id = data.get('diagnose') or data.get('diagnose_id')
+
+        # Manejo multitenant
         if user is not None:
-            try:
-                filter_by_tenant(Patient.objects.all(), user, field='reflexo').get(pk=patient_id)
-            except Patient.DoesNotExist:
-                return None, {'patient_id': 'Paciente no pertenece a tu empresa'}
-            try:
-                filter_by_tenant(Diagnosis.objects.all(), user, field='reflexo').get(pk=diagnose_id)
-            except Diagnosis.DoesNotExist:
-                return None, {'diagnose_id': 'Diagnóstico no pertenece a tu empresa'}
+            if is_global_admin(user):
+                # Para administradores globales, no filtrar por tenant
+                # Si no se envía reflexo_id, intentar inferirlo del paciente
+                if not data.get('reflexo_id') and patient_id:
+                    try:
+                        p = Patient.objects.only('reflexo_id').get(pk=patient_id)
+                        if p.reflexo_id:
+                            data['reflexo_id'] = p.reflexo_id
+                    except Patient.DoesNotExist:
+                        pass
+            else:
+                # Usuario de empresa: asignar/validar tenant
+                tenant_id = get_tenant(user)
+                if tenant_id is None and not data.get('reflexo_id'):
+                    return None, {'reflexo_id': 'Debe indicar la empresa (tenant).'}
+                if tenant_id and not data.get('reflexo_id'):
+                    data['reflexo_id'] = tenant_id
+
+                # Validar que patient y diagnose pertenezcan al tenant del usuario
+                try:
+                    filter_by_tenant(
+                        Patient.objects.filter(deleted_at__isnull=True),
+                        user,
+                        field='reflexo'
+                    ).get(pk=patient_id)
+                except Patient.DoesNotExist:
+                    return None, {'patient_id': 'Paciente no pertenece a tu empresa'}
+                try:
+                    filter_by_tenant(
+                        Diagnosis.objects.filter(deleted_at__isnull=True),
+                        user,
+                        field='reflexo'
+                    ).get(pk=diagnose_id)
+                except Diagnosis.DoesNotExist:
+                    return None, {'diagnose_id': 'Diagnóstico no pertenece a tu empresa'}
         serializer = MedicalRecordSerializer(data=data)
         if serializer.is_valid():
             record = serializer.save()
-            return MedicalRecordSerializer(record).data
+            return MedicalRecordSerializer(record).data, None
         return None, serializer.errors
     
     @staticmethod
     def update_medical_record(record_id, record_data, user=None):
         """Actualiza un historial médico existente."""
         try:
-            base = MedicalRecord.objects.filter(id=record_id, deleted_at__isnull=True)
+            base = MedicalRecord.objects.filter(
+                id=record_id,
+                deleted_at__isnull=True,
+                patient__deleted_at__isnull=True,
+                diagnose__deleted_at__isnull=True,
+            )
             if user is not None:
                 base = filter_by_tenant(base, user, field='reflexo')
             record = base.get()
             serializer = MedicalRecordSerializer(record, data=record_data, partial=True)
             if serializer.is_valid():
                 record = serializer.save()
-                return MedicalRecordSerializer(record).data
+                return MedicalRecordSerializer(record).data, None
             return None, serializer.errors
         except MedicalRecord.DoesNotExist:
             return None, {'error': 'Historial médico no encontrado'}
@@ -142,7 +181,9 @@ class MedicalRecordService:
         """Obtiene el historial médico de un paciente específico."""
         queryset = MedicalRecord.objects.filter(
             patient_id=patient_id,
-            deleted_at__isnull=True
+            deleted_at__isnull=True,
+            patient__deleted_at__isnull=True,
+            diagnose__deleted_at__isnull=True,
         ).order_by('-diagnosis_date', '-created_at')
         if user is not None:
             queryset = filter_by_tenant(queryset, user, field='reflexo')

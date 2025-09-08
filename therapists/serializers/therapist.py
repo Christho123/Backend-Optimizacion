@@ -18,17 +18,20 @@ class TherapistSerializer(serializers.ModelSerializer):
     region_id = serializers.PrimaryKeyRelatedField(
         queryset=Region.objects.all(), 
         source='region', 
-        write_only=True
+        write_only=True,
+        required=False
     )
     province_id = serializers.PrimaryKeyRelatedField(
         queryset=Province.objects.all(), 
         source='province', 
-        write_only=True
+        write_only=True,
+        required=False
     )
     district_id = serializers.PrimaryKeyRelatedField(
         queryset=District.objects.all(), 
         source='district', 
-        write_only=True
+        write_only=True,
+        required=False
     )
     document_type_id = serializers.PrimaryKeyRelatedField(
         queryset=DocumentType.objects.all(),
@@ -38,6 +41,11 @@ class TherapistSerializer(serializers.ModelSerializer):
             'does_not_exist': 'El tipo de documento seleccionado no existe.'
         }
     )
+
+    # Alternativa: permitir enviar códigos ubigeo en lugar de IDs
+    region_code = serializers.IntegerField(write_only=True, required=False, help_text="Código ubigeo de la región")
+    province_code = serializers.IntegerField(write_only=True, required=False, help_text="Código ubigeo de la provincia")
+    district_code = serializers.IntegerField(write_only=True, required=False, help_text="Código ubigeo del distrito")
 
     class Meta:
         model = Therapist
@@ -66,8 +74,49 @@ class TherapistSerializer(serializers.ModelSerializer):
             'province_id',
             'district_id',
             'document_type_id',
+            'region_code',
+            'province_code',
+            'district_code',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'deleted_at']
+    
+    def _inject_fk_from_codes(self, attrs):
+        """Si vienen region_code/province_code/district_code y faltan los *_id,
+        resolver por ubigeo_code y colocarlos en attrs como objetos FK (region/province/district).
+        """
+        # Solo resolver si no vinieron los *_id explícitos
+        region = attrs.get('region')
+        province = attrs.get('province')
+        district = attrs.get('district')
+        init = getattr(self, 'initial_data', {}) or {}
+
+        # Region
+        if region is None and 'region_code' in init and init.get('region_code') not in (None, ''):
+            try:
+                code = int(init.get('region_code'))
+                from ubi_geo.models import Region as Reg
+                attrs['region'] = Reg.objects.get(ubigeo_code=code)
+            except (ValueError, Reg.DoesNotExist):
+                raise serializers.ValidationError({'region_code': 'Código de región inválido o no existe.'})
+
+        # Province (requiere region resuelta para coherencia posterior)
+        if province is None and 'province_code' in init and init.get('province_code') not in (None, ''):
+            try:
+                code = int(init.get('province_code'))
+                from ubi_geo.models import Province as Prov
+                attrs['province'] = Prov.objects.get(ubigeo_code=code)
+            except (ValueError, Prov.DoesNotExist):
+                raise serializers.ValidationError({'province_code': 'Código de provincia inválido o no existe.'})
+
+        # District
+        if district is None and 'district_code' in init and init.get('district_code') not in (None, ''):
+            try:
+                code = int(init.get('district_code'))
+                from ubi_geo.models import District as Dist
+                attrs['district'] = Dist.objects.get(ubigeo_code=code)
+            except (ValueError, Dist.DoesNotExist):
+                raise serializers.ValidationError({'district_code': 'Código de distrito inválido o no existe.'})
+        return attrs
         
     def validate(self, attrs):
         """
@@ -75,9 +124,23 @@ class TherapistSerializer(serializers.ModelSerializer):
         province debe pertenecer a region
         district debe pertenecer a province
         """
+        # Resolver alternativas por código antes de validar coherencia
+        attrs = self._inject_fk_from_codes(attrs)
         region = attrs.get("region") or getattr(self.instance, "region", None)
         province = attrs.get("province") or getattr(self.instance, "province", None)
         district = attrs.get("district") or getattr(self.instance, "district", None)
+
+        # Validar presencia: debe existir region/province/district por id o por code
+        errors = {}
+        init = getattr(self, 'initial_data', {}) or {}
+        if region is None and not init.get('region_code'):
+            errors['region_id'] = ["Este campo es requerido (o use region_code)."]
+        if province is None and not init.get('province_code'):
+            errors['province_id'] = ["Este campo es requerido (o use province_code)."]
+        if district is None and not init.get('district_code'):
+            errors['district_id'] = ["Este campo es requerido (o use district_code)."]
+        if errors:
+            raise serializers.ValidationError(errors)
 
         if province and region and province.region_id != region.id:
             raise serializers.ValidationError(
@@ -212,3 +275,16 @@ class TherapistSerializer(serializers.ModelSerializer):
                 "La imagen debe ser una URL válida."
             )
         return value
+
+    # Asegurar que los campos auxiliares *_code no lleguen al create/update del modelo
+    def create(self, validated_data):
+        validated_data.pop('region_code', None)
+        validated_data.pop('province_code', None)
+        validated_data.pop('district_code', None)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data.pop('region_code', None)
+        validated_data.pop('province_code', None)
+        validated_data.pop('district_code', None)
+        return super().update(instance, validated_data)

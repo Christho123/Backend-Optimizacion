@@ -38,7 +38,7 @@ class StatisticsService:
                     Value(' '),
                     'therapist__last_name_maternal', 
                     Value(', '),
-                    'therapist__name'
+                    'therapist__first_name'
                 ),
                 sesiones=Count("id"),
                 ingresos=Sum("payment")
@@ -48,13 +48,16 @@ class StatisticsService:
         if not stats:
             return []
         
-        # 2. Calculamos promedios globales
+        # 2. Calculamos promedios globales (evitar división por cero)
         total_sesiones = sum(s['sesiones'] for s in stats)
         total_ingresos = sum(float(s['ingresos'] or 0) for s in stats)  
         num_terapeutas = len(stats)
         
-        prom_sesiones = total_sesiones / num_terapeutas if num_terapeutas > 0 else 1
-        prom_ingresos = total_ingresos / num_terapeutas if num_terapeutas > 0 else 1
+        prom_sesiones = (total_sesiones / num_terapeutas) if num_terapeutas > 0 else 1
+        prom_ingresos = (total_ingresos / num_terapeutas) if num_terapeutas > 0 else 1
+        # Si el promedio resultó 0 (p.ej., no hubo sesiones/ingresos en el rango), usar 1 para evitar división por cero
+        prom_sesiones = prom_sesiones if prom_sesiones > 0 else 1
+        prom_ingresos = prom_ingresos if prom_ingresos > 0 else 1
         
         # 3. Calcular rating original para cada terapeuta
         for stat in stats:
@@ -65,8 +68,10 @@ class StatisticsService:
             rating_original = (sesiones / prom_sesiones) * 0.7 + (ingresos / prom_ingresos) * 0.3
             stat['raiting_original'] = rating_original
         
-        # 4. Encontrar el máximo rating original
-        max_original = max(s['raiting_original'] for s in stats) if stats else 1
+        # 4. Encontrar el máximo rating original (evitar división por cero al escalar)
+        max_original = max((s['raiting_original'] for s in stats), default=1)
+        if max_original <= 0:
+            max_original = 1
         
         # 5. Escalar a 5 puntos y formatear resultado
         resultado = []

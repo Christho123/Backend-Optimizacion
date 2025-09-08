@@ -154,7 +154,7 @@ services:
     networks:
       - reflexo_network_prod
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health/"]
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost/health/"]
       timeout: 30s
       retries: 3
 

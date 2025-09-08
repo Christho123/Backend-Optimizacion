@@ -6,17 +6,20 @@ class Province(models.Model):
     Modelo para gestionar las provincias.
     Basado en la estructura de la tabla provinces de la BD.
     """
-    
-    # Multitenant: cada provincia pertenece a un tenant (Reflexo)
-    reflexo = models.ForeignKey(
-        'reflexo.Reflexo',
-        on_delete=models.CASCADE,
-        related_name='+',
+
+    ubigeo_code = models.IntegerField(
+        unique=True,
         null=True,
         blank=True,
-        verbose_name='Empresa/Tenant'
+        verbose_name="Código ubigeo"
     )
-
+    # Secuencia visual 1..196
+    sequence = models.IntegerField(
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name="N°"
+    )
     name = models.CharField(max_length=255, verbose_name="Nombre")
     region = models.ForeignKey(Region, on_delete=models.CASCADE, verbose_name="Región")
     
@@ -29,10 +32,8 @@ class Province(models.Model):
         db_table = 'provinces'
         verbose_name = "Provincia"
         verbose_name_plural = "Provincias"
-        ordering = ["name"]
-        constraints = [
-            models.UniqueConstraint(fields=['reflexo', 'name'], name='uniq_province_per_reflexo_name')
-        ]
+        ordering = ["sequence", "region__ubigeo_code", "ubigeo_code", "name"]
+        # Global (no multitenant constraint)
 
     def __str__(self):
         return f"{self.name} ({self.region.name})"

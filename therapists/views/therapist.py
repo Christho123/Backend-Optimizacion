@@ -86,12 +86,20 @@ class TherapistViewSet(viewsets.ModelViewSet):
         else:
             serializer.save()
 
+    def update(self, request, *args, **kwargs):
+        """
+        Tratamos PUT como actualización parcial para simplificar el flujo del cliente.
+        De este modo no es obligatorio enviar todos los campos requeridos, solo los que desees cambiar.
+        """
+        kwargs['partial'] = True
+        return super().update(request, *args, **kwargs)
+
     def destroy(self, request, *args, **kwargs):
         """
-        Soft delete - marca como inactivo en lugar de eliminar.
+        Hard delete (global): elimina definitivamente el terapeuta.
         """
         instance = self.get_object()
-        instance.soft_delete()
+        instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["get"])
@@ -112,10 +120,18 @@ class TherapistViewSet(viewsets.ModelViewSet):
         """
         Restaura un terapeuta marcándolo como activo.
         """
+        # Buscar sin filtrar por deleted_at para dar feedback claro
         try:
-            therapist = Therapist.objects.get(pk=pk, deleted_at__isnull=False)
+            qs = Therapist.objects.all()
+            # Aislar por tenant si no es admin global
+            if not is_global_admin(request.user):
+                qs = filter_by_tenant(qs, request.user, field='reflexo')
+            therapist = qs.get(pk=pk)
         except Therapist.DoesNotExist:
             return Response({"detail": "No encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        if therapist.deleted_at is None:
+            # Idempotente: si ya está activo, responder 200 con el estado actual
+            return Response(self.get_serializer(therapist).data)
         therapist.restore()
         return Response(self.get_serializer(therapist).data)
 

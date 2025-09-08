@@ -48,6 +48,19 @@ class Therapist(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Fecha de actualización")
     deleted_at = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de eliminación")
 
+    def soft_delete(self):
+        """Marca el registro como eliminado lógicamente."""
+        from django.utils import timezone
+        if self.deleted_at is None:
+            self.deleted_at = timezone.now()
+            self.save(update_fields=["deleted_at"]) 
+
+    def restore(self):
+        """Restaura un registro eliminado lógicamente."""
+        if self.deleted_at is not None:
+            self.deleted_at = None
+            self.save(update_fields=["deleted_at"]) 
+
     def get_full_name(self):
         """Obtiene el nombre completo del terapeuta."""
         return f"{self.first_name} {self.last_name_paternal} {self.last_name_maternal or ''}"

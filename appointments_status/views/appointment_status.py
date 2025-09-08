@@ -6,7 +6,6 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from ..models import AppointmentStatus
 from ..serializers import AppointmentStatusSerializer
 from architect.utils.tenant import filter_by_tenant, get_tenant, is_global_admin
-from architect.utils.tenant import filter_by_tenant
 
 
 class AppointmentStatusViewSet(viewsets.ModelViewSet):
@@ -18,7 +17,8 @@ class AppointmentStatusViewSet(viewsets.ModelViewSet):
     queryset = AppointmentStatus.objects.all()
     serializer_class = AppointmentStatusSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['name', 'is_active']
+    # No incluir 'is_active' aquí porque no es un campo del modelo
+    filterset_fields = ['name']
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at', 'updated_at']
     ordering = ['name']
@@ -31,10 +31,14 @@ class AppointmentStatusViewSet(viewsets.ModelViewSet):
         # Aislamiento por tenant
         queryset = filter_by_tenant(queryset, self.request.user, field='reflexo')
         
-        # Filtro por estado activo
+        # Filtro por estado "activo" basado en deleted_at
         is_active = self.request.query_params.get('is_active', None)
         if is_active is not None:
-            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+            active_bool = is_active.lower() == 'true'
+            if active_bool:
+                queryset = queryset.filter(deleted_at__isnull=True)
+            else:
+                queryset = queryset.filter(deleted_at__isnull=False)
         
         return queryset
 
@@ -54,6 +58,14 @@ class AppointmentStatusViewSet(viewsets.ModelViewSet):
             serializer.save(**data)
         else:
             serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Hard delete (global): elimina definitivamente el estado de cita.
+        """
+        instance = self.get_object()
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
     
     @action(detail=False, methods=['get'])
     def active(self, request):

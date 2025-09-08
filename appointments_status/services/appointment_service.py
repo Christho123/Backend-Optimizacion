@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from ..models import Appointment, Ticket
 from ..serializers import AppointmentSerializer
 from decimal import Decimal
+from datetime import datetime
+from histories_configurations.models import History
 
 
 class AppointmentService:
@@ -25,7 +27,7 @@ class AppointmentService:
             Response: Respuesta con la cita creada o error
         """
         try:
-            # Validar datos requeridos
+            # Validar datos requeridos mínimos del payload
             required_fields = ['patient', 'therapist', 'appointment_date', 'hour']
             for field in required_fields:
                 if field not in data:
@@ -33,9 +35,70 @@ class AppointmentService:
                         {'error': f'El campo {field} es requerido'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-            
+
+            payload = dict(data)
+
+            # Convertir patient/therapist IDs a claves *_id (evita instancias manuales)
+            try:
+                payload['patient_id'] = int(payload.pop('patient'))
+            except (KeyError, ValueError, TypeError):
+                return Response({'error': 'patient debe ser un ID entero'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                therapist_val = payload.pop('therapist')
+                payload['therapist_id'] = int(therapist_val) if therapist_val is not None else None
+            except (ValueError, TypeError):
+                return Response({'error': 'therapist debe ser un ID entero o null'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Asegurar History: usar el provisto o crear/buscar uno para el paciente
+            if 'history' in payload and payload['history']:
+                # Si viene history directo, solo convertir a *_id si es int
+                try:
+                    payload['history_id'] = int(payload.pop('history'))
+                except (ValueError, TypeError):
+                    return Response({'error': 'history debe ser un ID entero'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                # Buscar historial activo más reciente del paciente (por tenant si viene)
+                tenant_id = payload.get('reflexo') or payload.get('reflexo_id')
+                qs = History.active.filter(patient_id=payload['patient_id'])
+                if tenant_id:
+                    qs = qs.filter(reflexo_id=tenant_id)
+                history = qs.order_by('-created_at').first()
+                if not history:
+                    # Crear uno mínimo
+                    history = History.objects.create(
+                        patient_id=payload['patient_id'],
+                        reflexo_id=tenant_id
+                    )
+                payload['history_id'] = history.id
+
+            # Normalizar appointment_date + hour a datetime válido si vienen como strings
+            appt_date = payload.get('appointment_date')
+            hour_val = payload.get('hour')
+            try:
+                # Parse fecha (YYYY-MM-DD o ISO)
+                if isinstance(appt_date, str):
+                    # Si ya viene con tiempo, intentar parse ISO
+                    try:
+                        appt_dt = datetime.fromisoformat(appt_date.replace('Z', '+00:00'))
+                    except ValueError:
+                        # Solo fecha
+                        appt_dt = datetime.strptime(appt_date, '%Y-%m-%d')
+                else:
+                    appt_dt = appt_date
+
+                # Parse hora HH:MM si es str
+                if isinstance(hour_val, str):
+                    hour_dt = datetime.strptime(hour_val, '%H:%M').time()
+                else:
+                    hour_dt = hour_val
+
+                if appt_dt and hour_dt:
+                    payload['appointment_date'] = datetime.combine(appt_dt.date(), hour_dt)
+            except ValueError:
+                return Response({'error': 'Formato inválido de appointment_date u hour. Use YYYY-MM-DD y HH:MM.'}, status=status.HTTP_400_BAD_REQUEST)
+
             # Crear la cita
-            appointment = Appointment.objects.create(**data)
+            appointment = Appointment.objects.create(**payload)
             
             # El ticket se crea automáticamente mediante el signal
             # Verificar que se creó correctamente
@@ -126,29 +189,18 @@ class AppointmentService:
     
     def delete(self, appointment_id):
         """
-        Elimina una cita (soft delete).
-        
-        Args:
-            appointment_id (int): ID de la cita a eliminar
-            
-        Returns:
-            Response: Respuesta de confirmación o error
+        Elimina una cita de forma definitiva (hard delete) junto con su ticket.
         """
         try:
-            appointment = Appointment.objects.get(id=appointment_id, deleted_at__isnull=True)
-            appointment.soft_delete()
-            
-            # También desactivar el ticket asociado
+            appointment = Appointment.objects.get(id=appointment_id)
+            # Eliminar ticket asociado si existe
             try:
                 ticket = Ticket.objects.get(appointment=appointment)
-                ticket.soft_delete()
+                ticket.delete()
             except Ticket.DoesNotExist:
-                pass  # Si no hay ticket, no hay problema
-            
-            return Response({
-                'message': 'Cita eliminada exitosamente'
-            }, status=status.HTTP_200_OK)
-            
+                pass
+            appointment.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except Appointment.DoesNotExist:
             return Response(
                 {'error': 'Cita no encontrada'},
@@ -220,8 +272,33 @@ class AppointmentService:
             Response: Respuesta con las citas en el rango
         """
         try:
+            # Aceptar strings 'YYYY-MM-DD' o date/datetime
+            from datetime import datetime, time
+            def to_date(d):
+                if isinstance(d, str):
+                    # Permitir ISO también
+                    try:
+                        return datetime.strptime(d, '%Y-%m-%d').date()
+                    except ValueError:
+                        # Intentar ISO (YYYY-MM-DDTHH:MM:SS)
+                        return datetime.fromisoformat(d.replace('Z', '+00:00')).date()
+                return getattr(d, 'date', lambda: d)() if hasattr(d, 'date') else d
+
+            try:
+                sd = to_date(start_date)
+                ed = to_date(end_date)
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'Formato inválido. Use start_date=YYYY-MM-DD y end_date=YYYY-MM-DD'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Construir rango de día completo
+            start_dt = datetime.combine(sd, time.min)
+            end_dt = datetime.combine(ed, time.max)
+
             queryset = Appointment.objects.filter(
-                appointment_date__range=[start_date, end_date],
+                appointment_date__range=[start_dt, end_dt],
                 deleted_at__isnull=True
             )
             if tenant_id:

@@ -100,13 +100,24 @@ class PublicProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'user_name', 'display_name', 'sex', 'country',
-            'photo_url', 'date_joined'
+            'photo_url', 'date_joined', 'user'
         ]
         read_only_fields = ['id', 'date_joined']
     
     def get_display_name(self, obj):
         """Retorna el nombre para mostrar"""
         return f"{obj.name} {obj.paternal_lastname}".strip()
+
+    def get_user(self, obj):
+        """Información básica del usuario para el campo `user`.
+        Evita errores 500 al faltar el método del SerializerMethodField.
+        """
+        return {
+            'id': obj.id,
+            'user_name': obj.user_name,
+            'email': obj.email,
+            'is_active': obj.is_active,
+        }
 
 
 class ProfileSettingsSerializer(serializers.ModelSerializer):

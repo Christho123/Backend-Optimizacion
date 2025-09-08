@@ -16,7 +16,8 @@ from ..models.user_verification_code import UserVerificationCode
 from ..serializers.verification import (
     VerificationCodeSerializer, EmailChangeSerializer,
     EmailChangeConfirmSerializer, VerificationCodeRequestSerializer,
-    VerificationCodeResendSerializer, VerificationStatusSerializer
+    VerificationCodeResendSerializer, VerificationStatusSerializer,
+    EmailVerificationSerializer
 )
 
 User = get_user_model()
@@ -110,11 +111,14 @@ class VerificationStatusView(APIView):
 
         verification_status = []
         for code in active_codes:
+            MAX_ATTEMPTS = 5
+            attempts_remaining = max(0, MAX_ATTEMPTS - (code.failed_attempts or 0))
+            is_valid = (not code.is_used) and (not code.is_expired()) and code.can_attempt()
             status_data = {
                 'verification_type': code.verification_type,
                 'expires_at': code.expires_at,
-                'attempts_remaining': code.max_attempts - code.attempts,
-                'is_valid': code.is_valid()
+                'attempts_remaining': attempts_remaining,
+                'is_valid': is_valid
             }
             verification_status.append(status_data)
 
@@ -216,10 +220,10 @@ class EmailVerificationView(APIView):
 
     def post(self, request):
         """Solicita verificación de email"""
-        serializer = VerificationCodeRequestSerializer(data=request.data)
+        serializer = EmailVerificationSerializer(data=request.data)
 
         if serializer.is_valid():
-            email = serializer.validated_data.get('target_email')
+            email = serializer.validated_data.get('email')
 
             if not email:
                 return Response({'error': 'El email es requerido'},

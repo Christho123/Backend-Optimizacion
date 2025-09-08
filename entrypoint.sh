@@ -34,9 +34,9 @@ wait_for_redis
 # echo "Ejecutando migraciones..."
 # python manage.py migrate --noinput
 
-# Recolectar archivos estáticos
-echo "Recolectando archivos estáticos..."
-python manage.py collectstatic --noinput
+# Recolectar archivos estáticos (se ejecuta desde docker-compose en 'web')
+# echo "Recolectando archivos estáticos..."
+# python manage.py collectstatic --noinput
 
 # Crear superusuario si no existe (comentado para usar BD local)
 # echo "Verificando superusuario..."

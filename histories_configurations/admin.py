@@ -15,7 +15,11 @@ class BaseTenantAdmin(admin.ModelAdmin):
         qs = super().get_queryset(request)
         if is_global_admin(request.user):
             return qs
-        return filter_by_tenant(qs, request.user, field=self.tenant_field_name)
+        # Si el modelo no tiene campo tenant, no filtrar
+        model_fields = {f.name for f in self.model._meta.get_fields()}
+        if self.tenant_field_name in model_fields:
+            return filter_by_tenant(qs, request.user, field=self.tenant_field_name)
+        return qs
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         # Filtrar FKs por tenant para evitar ver entidades de otros tenants
@@ -38,14 +42,16 @@ class BaseTenantAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         ro = list(super().get_readonly_fields(request, obj))
-        # El campo tenant solo es de solo lectura para usuarios no admin
-        if not is_global_admin(request.user) and self.tenant_field_name not in ro:
-            ro.append(self.tenant_field_name)
-        # Agregar timestamps solamente si existen en el modelo
+        # El campo tenant solo es de solo lectura para usuarios no admin, si existe
         try:
             model_fields = {f.name for f in self.model._meta.get_fields()}
         except Exception:
             model_fields = set()
+        if (not is_global_admin(request.user)
+            and self.tenant_field_name in model_fields
+            and self.tenant_field_name not in ro):
+            ro.append(self.tenant_field_name)
+        # Agregar timestamps solamente si existen en el modelo
         for fname in ('created_at', 'updated_at', 'deleted_at'):
             if fname in model_fields and fname not in ro:
                 ro.append(fname)
@@ -54,13 +60,15 @@ class BaseTenantAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         # Asignar tenant automáticamente solo para no-admins o si no viene seteado
         tenant_id = get_tenant(request.user)
-        if not is_global_admin(request.user):
-            if tenant_id is not None:
-                setattr(obj, f"{self.tenant_field_name}_id", tenant_id)
-        else:
-            # Si es admin y no escogió tenant, usar el suyo si existe
-            if getattr(obj, f"{self.tenant_field_name}_id", None) is None and tenant_id is not None:
-                setattr(obj, f"{self.tenant_field_name}_id", tenant_id)
+        model_fields = {f.name for f in obj._meta.get_fields()}
+        if self.tenant_field_name in model_fields:
+            if not is_global_admin(request.user):
+                if tenant_id is not None:
+                    setattr(obj, f"{self.tenant_field_name}_id", tenant_id)
+            else:
+                # Si es admin y no escogió tenant, usar el suyo si existe
+                if getattr(obj, f"{self.tenant_field_name}_id", None) is None and tenant_id is not None:
+                    setattr(obj, f"{self.tenant_field_name}_id", tenant_id)
         super().save_model(request, obj, form, change)
 
 #Registrar el modelo en el admin
@@ -93,6 +101,8 @@ class HistoryAdmin(BaseTenantAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
+        # Ocultar historiales cuyo paciente fue eliminado lógicamente
+        qs = qs.filter(patient__deleted_at__isnull=True)
         if is_global_admin(request.user):
             return qs
         return filter_by_tenant(qs, request.user, field='reflexo')
@@ -104,14 +114,20 @@ class HistoryAdmin(BaseTenantAdmin):
         return tuple(ro)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if not is_global_admin(request.user):
-            tenant_id = get_tenant(request.user)
-            if tenant_id is not None:
-                if db_field.name == 'patient':
-                    from patients_diagnoses.models import Patient
-                    kwargs['queryset'] = Patient.objects.filter(reflexo_id=tenant_id)
-                elif db_field.name == 'reflexo':
-                    from reflexo.models import Reflexo
+        # Siempre ocultar pacientes soft-deleted en el selector
+        if db_field.name == 'patient':
+            from patients_diagnoses.models import Patient
+            base_qs = Patient.objects.filter(deleted_at__isnull=True)
+            if not is_global_admin(request.user):
+                tenant_id = get_tenant(request.user)
+                if tenant_id is not None:
+                    base_qs = base_qs.filter(reflexo_id=tenant_id)
+            kwargs['queryset'] = base_qs
+        elif db_field.name == 'reflexo':
+            from reflexo.models import Reflexo
+            if not is_global_admin(request.user):
+                tenant_id = get_tenant(request.user)
+                if tenant_id is not None:
                     kwargs['queryset'] = Reflexo.objects.filter(id=tenant_id)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 

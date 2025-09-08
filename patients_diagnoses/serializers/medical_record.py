@@ -12,12 +12,12 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
     
     # IDs para escritura
     patient_id = serializers.PrimaryKeyRelatedField(
-        queryset=PatientSerializer.Meta.model.objects.all(), 
+        queryset=PatientSerializer.Meta.model.objects.filter(deleted_at__isnull=True), 
         source='patient', 
         write_only=True
     )
     diagnose_id = serializers.PrimaryKeyRelatedField(
-        queryset=DiagnosisSerializer.Meta.model.objects.all(), 
+        queryset=DiagnosisSerializer.Meta.model.objects.filter(deleted_at__isnull=True), 
         source='diagnose', 
         write_only=True
     )
@@ -39,16 +39,23 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
         return value
     
     def validate(self, data):
-        """Validación personalizada."""
-        # Validar que no exista un registro duplicado para la misma fecha
-        if MedicalRecord.objects.filter(
-            patient=data['patient'],
-            diagnose=data['diagnose'],
-            diagnosis_date=data['diagnosis_date']
-        ).exclude(id=self.instance.id if self.instance else None).exists():
-            raise serializers.ValidationError(
-                "Ya existe un registro médico para este paciente con este diagnóstico en la misma fecha."
-            )
+        """Validación personalizada.
+        Soporta actualizaciones parciales: si faltan claves en `data`, usa los valores actuales de la instancia.
+        """
+        patient = data.get('patient') or (self.instance.patient if self.instance else None)
+        diagnose = data.get('diagnose') or (self.instance.diagnose if self.instance else None)
+        diagnosis_date = data.get('diagnosis_date') or (self.instance.diagnosis_date if self.instance else None)
+
+        # Ejecutar la validación de unicidad solo cuando tengamos los 3 valores
+        if patient and diagnose and diagnosis_date:
+            if MedicalRecord.objects.filter(
+                patient=patient,
+                diagnose=diagnose,
+                diagnosis_date=diagnosis_date
+            ).exclude(id=self.instance.id if self.instance else None).exists():
+                raise serializers.ValidationError(
+                    "Ya existe un registro médico para este paciente con este diagnóstico en la misma fecha."
+                )
         return data
 
 class MedicalRecordListSerializer(serializers.ModelSerializer):

@@ -158,10 +158,26 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket_id = pk
         return self.service.mark_as_paid(ticket_id)
     
+    @action(detail=True, methods=['post'], url_path='mark_paid')
+    def mark_paid(self, request, pk=None):
+        """
+        Alias de mark_as_paid para compatibilidad con clientes.
+        """
+        ticket_id = pk
+        return self.service.mark_as_paid(ticket_id)
+    
     @action(detail=True, methods=['post'])
     def mark_as_cancelled(self, request, pk=None):
         """
         Marca un ticket como cancelado.
+        """
+        ticket_id = pk
+        return self.service.mark_as_cancelled(ticket_id)
+    
+    @action(detail=True, methods=['post'], url_path='cancel')
+    def cancel(self, request, pk=None):
+        """
+        Alias de mark_as_cancelled para compatibilidad con clientes.
         """
         ticket_id = pk
         return self.service.mark_as_cancelled(ticket_id)
@@ -171,10 +187,10 @@ class TicketViewSet(viewsets.ModelViewSet):
         """
         Obtiene tickets agrupados por método de pago.
         """
-        payment_method = request.query_params.get('payment_method')
+        payment_method = request.query_params.get('payment_method') or request.query_params.get('method')
         if not payment_method:
             return Response(
-                {'error': 'Se requiere payment_method'},
+                {'error': 'Se requiere payment_method (o alias: method)'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -193,6 +209,19 @@ class TicketViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        return self.service.get_by_ticket_number(ticket_number, user=request.user)
+
+    @action(detail=False, methods=['get'], url_path='by_number')
+    def by_number(self, request):
+        """
+        Alias para obtener ticket por número usando el parámetro 'number'.
+        """
+        ticket_number = request.query_params.get('number') or request.query_params.get('ticket_number')
+        if not ticket_number:
+            return Response(
+                {'error': 'Se requiere number (o alias: ticket_number)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         return self.service.get_by_ticket_number(ticket_number, user=request.user)
     
     @action(detail=False, methods=['get'])

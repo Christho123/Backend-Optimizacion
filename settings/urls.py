@@ -21,9 +21,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings  # Importa settings
 from django.conf.urls.static import static  # Importa static
+from django.http import HttpResponse
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Healthcheck endpoint for Docker/Nginx
+    path('health/', lambda request: HttpResponse("ok")),
     
     # 🔌 API Endpoints - Estándar unificado
     path('api/', include([

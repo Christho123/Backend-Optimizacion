@@ -6,16 +6,6 @@ class DocumentType(models.Model):
     Modelo para gestionar los tipos de documentos.
     Basado en la estructura de la tabla document_types de la BD.
     """
-    
-    # Multitenant: cada tipo pertenece a un tenant (Reflexo)
-    reflexo = models.ForeignKey(
-        'reflexo.Reflexo',
-        on_delete=models.CASCADE,
-        related_name='+',
-        null=True,
-        blank=True,
-        verbose_name='Empresa/Tenant'
-    )
 
     name = models.CharField(
         max_length=50,
@@ -44,6 +34,4 @@ class DocumentType(models.Model):
         verbose_name = "Tipo de Documento"
         verbose_name_plural = "Tipos de Documentos"
         ordering = ['name']
-        constraints = [
-            models.UniqueConstraint(fields=['reflexo', 'name'], name='uniq_document_type_per_reflexo_name')
-        ]
+        # Global (no multitenant constraint)

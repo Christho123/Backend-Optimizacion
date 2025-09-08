@@ -5,17 +5,13 @@ class Region(models.Model):
     Modelo para gestionar las regiones.
     Basado en la estructura de la tabla regions de la BD.
     """
-    
-    # Multitenant: cada región pertenece a un tenant (Reflexo)
-    reflexo = models.ForeignKey(
-        'reflexo.Reflexo',
-        on_delete=models.CASCADE,
-        related_name='+',
+
+    ubigeo_code = models.IntegerField(
+        unique=True,
         null=True,
         blank=True,
-        verbose_name='Empresa/Tenant'
+        verbose_name="Código ubigeo"
     )
-
     name = models.CharField(max_length=255, verbose_name="Nombre")
     
     # Campos de auditoría
@@ -27,10 +23,8 @@ class Region(models.Model):
         db_table = 'regions'
         verbose_name = "Región"
         verbose_name_plural = "Regiones"
-        ordering = ["name"]
-        constraints = [
-            models.UniqueConstraint(fields=['reflexo', 'name'], name='uniq_region_per_reflexo_name')
-        ]
+        ordering = ["ubigeo_code", "name"]
+        # Global (no multitenant constraint)
 
     def __str__(self):
         return self.name

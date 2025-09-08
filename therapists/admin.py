@@ -11,6 +11,8 @@ class TherapistAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
+        # Ocultar SIEMPRE los eliminados lógicamente
+        qs = qs.filter(deleted_at__isnull=True)
         if is_global_admin(request.user):
             return qs
         return filter_by_tenant(qs, request.user, field='reflexo')

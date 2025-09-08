@@ -307,8 +307,7 @@ class ReportService:
                 'appointment__patient__phone1',
                 'appointment__therapist__first_name',
                 'appointment__therapist__last_name_paternal',
-                'appointment__therapist__last_name_maternal',
-                'appointment__therapist__license_number'
+                'appointment__therapist__last_name_maternal'
             )
             .order_by('-payment_date')
         )
@@ -355,7 +354,7 @@ class ReportService:
                 
                 # Información del terapeuta
                 "terapeuta_nombre": therapist_name,
-                "terapeuta_licencia": ticket['appointment__therapist__license_number'] or "No especificado"
+                "terapeuta_licencia": "No especificado"
             }
             
             tickets_data.append(ticket_info)
