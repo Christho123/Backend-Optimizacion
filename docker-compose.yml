@@ -11,7 +11,7 @@ services:
       MYSQL_PASSWORD: mysql
       MYSQL_ROOT_PASSWORD: root
     ports:
-      - "3306:3306"
+      - "3307:3306"
     command: ["--default-authentication-plugin=mysql_native_password", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
     volumes:
       - db_data:/var/lib/mysql
@@ -85,8 +85,6 @@ services:
       DATABASE_HOST: db
       DATABASE_PORT: "3306"
       REDIS_URL: redis://redis:6379/0
-    volumes:
-      - .:/app
     depends_on:
       db:
         condition: service_healthy
@@ -111,8 +109,6 @@ services:
       DATABASE_HOST: db
       DATABASE_PORT: "3306"
       REDIS_URL: redis://redis:6379/0
-    volumes:
-      - .:/app
     depends_on:
       db:
         condition: service_healthy

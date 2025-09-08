@@ -46,7 +46,8 @@ RUN mkdir -p /app/staticfiles /app/media /app/logs
 
 # Hacer el script de entrada ejecutable
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
+
 
 # Crear usuario no-root para seguridad
 RUN groupadd -r django && useradd -r -g django django

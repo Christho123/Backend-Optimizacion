@@ -12,7 +12,7 @@ services:
       MYSQL_USER: ${DATABASE_USER}
       MYSQL_PASSWORD: ${DATABASE_PASSWORD}
     ports:
-      - "127.0.0.1:3306:3306"  # Solo acceso local
+      - "127.0.0.1:3307:3306"  # Solo acceso local
     volumes:
       - mysql_data_prod:/var/lib/mysql
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
