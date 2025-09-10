@@ -2350,6 +2350,18 @@ Antes de marcar un ticket como pagado, **DEBES crear una cita primero**. Los pas
 | **GET** | `/api/configurations/histories/` | Listar historiales | Requerida |
 | **POST** | `/api/configurations/histories/create/` | Crear historial | Requerida |
 | **POST** | `/api/configurations/histories/{id}/delete/` | Eliminar historial | Requerida |
+| **GET** | `/api/configurations/histories/document_types/` | Listar Tipos de Documentos | Requerida |
+| **POST** | `/api/configurations/histories/document_types/create/` | Crear Tipo de Documento | Requerida |
+| **DELETE** | `/api/configurations/histories/document_types/id/delete/` | Eliminar Tipo de Documento | Requerida |
+| **GET** | `/api/configurations/histories/payment_types/` | Listar Tipos de Pagos | Requerida |
+| **POST** | `/api/configurations/histories/payment_types/create/` | Crear Tipo de Pago | Requerida |
+| **PUT** | `/api/configurations/histories/payment_types/id/edit/` | Actualizar Tipo de Pago | Requerida |
+| **DELETE** | `/api/configurations/histories/payment_types/id/delete/` | Eliminar Tipo de Pago | Requerida |
+| **GET** | `/api/configurations/histories/predetermined_prices/` | Listar Precios Predeterminados | Requerida |
+| **POST** | `/api/configurations/histories/predetermined_prices/create/` | Crear Precio Predeterminado | Requerida |
+| **PUT** | `/api/configurations/histories/predetermined_prices/id/edit/` | Actualizar Precio Predeterminado | Requerida |
+| **DELETE** | `/api/configurations/histories/predetermined_prices/id/delete/` | Eliminar Precio Predeterminado | Requerida |
+
 
 #### Ejemplos de Historiales
 
@@ -2392,6 +2404,8 @@ Antes de marcar un ticket como pagado, **DEBES crear una cita primero**. Los pas
   "error": "JSON inválido"
 }
 ```
+
+------------------------------------------------------------------------------
 
 **Eliminar Historial:**
 - **Base URL:** `http://178.156.204.38/`
@@ -2480,6 +2494,327 @@ Antes de marcar un ticket como pagado, **DEBES crear una cita primero**. Los pas
   ]
 }
 ```
+
+------------------------------------------------------------------------------
+
+**Listar Tipos de Documentos:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** GET
+- **URL:** `{{base_url}}/api/configurations/document_types/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+  ```
+  Content-Type: application/json
+  ```
+- **Body (raw JSON):**
+  ```json
+  *vacio*
+  ```
+
+**Respuesta Exitosa:**
+```json
+  {
+    "document_types": [
+        {
+            "id": 2,
+            "name": "DNI"
+        },
+        {
+            "id": 20,
+            "name": "Prueba4"
+        }
+    ]
+  }
+```
+
+------------------------------------------------------------------------------
+
+**Crear Tipo de Documento:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** POST
+- **URL:** `{{base_url}}/api/configurations/document_types/create/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+  ```
+  Content-Type: application/json
+  ```
+- **Body (raw JSON):**
+  ```json
+  {
+    "name": "Prueba4"
+  }
+  ```
+
+**Respuesta Exitosa:**
+```json
+  {
+    "id": 20,
+    "name": "Prueba4"
+  }
+```
+
+------------------------------------------------------------------------------
+
+**Eliminar Tipo de Documento:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** DELETE
+- **URL:** `{{base_url}}/api/configurations/document_types/20/delete/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+  ```
+  Content-Type: application/json
+  ```
+- **Body (raw JSON):**
+  ```json
+  **vacio**
+  ```
+
+**Respuesta Exitosa:**
+```json
+  {
+    "status": "deleted",
+    "id": 20
+  }
+```
+
+------------------------------------------------------------------------------
+
+**Listar Tipos de Pagos:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** GET
+- **URL:** `{{base_url}}/api/configurations/payment_types/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+  ```
+  Content-Type: application/json
+  ```
+- **Body (raw JSON):**
+  ```json
+  **vacio**
+  ```
+
+**Respuesta Exitosa:**
+```json
+  {
+    "payment_types": [
+        {
+            "id": 2,
+            "name": "Efectivo"
+        },
+        {
+            "id": 5,
+            "name": "Tarjeta"
+        }
+    ]
+  }
+```
+
+------------------------------------------------------------------------------
+
+**Crear Tipo de Pago:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** POST
+- **URL:** `{{base_url}}/api/configurations/payment_types/create/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+  ```
+  Content-Type: application/json
+  ```
+- **Body (raw JSON):**
+  ```json
+  {
+    "name": "coimitaaaa"
+  }
+  ```
+
+**Respuesta Exitosa:**
+```json
+  {
+    "id": 8,
+    "name": "coimitaaaa"
+  }
+```
+
+------------------------------------------------------------------------------
+
+**Editar Tipo de Pago:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** PUT
+- **URL:** `{{base_url}}/api/configurations/payment_types/8/edit/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+  ```
+  Content-Type: application/json
+  ```
+- **Body (raw JSON):**
+  ```json
+  {
+    "name": "coimitaaa12"
+  }
+  ```
+
+**Respuesta Exitosa:**
+```json
+  {
+    "id": 8,
+    "name": "coimitaaa12"
+  }
+```
+
+------------------------------------------------------------------------------
+
+**Eliminar Tipo de Pago:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** DELETE
+- **URL:** `{{base_url}}/api/configurations/payment_types/8/delete/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+  ```
+  Content-Type: application/json
+  ```
+- **Body (raw JSON):**
+  ```json
+  **vacio**
+  ```
+
+**Respuesta Exitosa:**
+```json
+  {
+    "status": "deleted",
+    "id": 8
+  }
+```
+------------------------------------------------------------------------------
+
+**Listar Precios predeterminados:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** GET
+- **URL:** `{{base_url}}/api/configurations/predetermined_prices/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+  ```
+  Content-Type: application/json
+  ```
+- **Body (raw JSON):**
+  ```json
+  **vacio**
+  ```
+
+**Respuesta Exitosa:**
+```json
+  {
+    "predetermined_prices": [
+        {
+            "id": 1,
+            "name": "Cupon sin costo",
+            "price": "50.00"
+        }
+    ]
+  }
+```
+
+------------------------------------------------------------------------------
+
+**Crear Precio predeterminado:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** POST
+- **URL:** `{{base_url}}/api/configurations/predetermined_prices/create/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+  ```
+  Content-Type: application/json
+  ```
+- **Body (raw JSON):**
+  ```json
+  {
+    "name": "coimitaaa",
+    "price": 100.00
+  }
+  ```
+
+**Respuesta Exitosa:**
+```json
+  {
+    "id": 2,
+    "name": "coimitaaa",
+    "price": 100.00
+  }
+```
+
+------------------------------------------------------------------------------
+
+**Editar Precio predeterminado:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** PUT
+- **URL:** `{{base_url}}/api/configurations/predetermined_prices/2/edit/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+  ```
+  Content-Type: application/json
+  ```
+- **Body (raw JSON):**
+  ```json
+  {
+    "name": "coimitaaaaaaaaa1222",
+    "price": 150.00
+  }
+  ```
+
+**Respuesta Exitosa:**
+```json
+  {
+    "id": 2,
+    "name": "coimitaaaaaaaaa1222",
+    "price": "150.0"
+  }
+```
+
+------------------------------------------------------------------------------
+
+**Editar Precio predeterminado:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** DETELE
+- **URL:** `{{base_url}}/api/configurations/predetermined_prices/2/detele/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+  ```
+  Content-Type: application/json
+  ```
+- **Body (raw JSON):**
+  ```json
+  **vacio**
+  ```
+
+**Respuesta Exitosa:**
+```json
+  {
+    "status": "deleted"
+  }
+```
+
+------------------------------------------------------------------------------
 
 ---
 ## ⚙️ Módulo 8: Empresa y reportes (`/api/company/`)

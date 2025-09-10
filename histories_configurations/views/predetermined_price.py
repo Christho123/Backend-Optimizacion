@@ -39,8 +39,8 @@ def predetermined_price_create(request):
 
 @csrf_exempt
 def predetermined_price_update(request, pk):
-    if request.method != "POST":
-        return HttpResponseNotAllowed(["POST"])
+    if request.method != "PUT":
+        return HttpResponseNotAllowed(["PUT"])
     
     try:
         payload = json.loads(request.body.decode())
@@ -70,8 +70,8 @@ def predetermined_price_update(request, pk):
 
 @csrf_exempt
 def predetermined_price_delete(request, pk):
-    if request.method != "POST":
-        return HttpResponseNotAllowed(["POST"])
+    if request.method != "DELETE":
+        return HttpResponseNotAllowed(["DELETE"])
     
     try:
         p = PredeterminedPrice.objects.filter(deleted_at__isnull=True).get(pk=pk)
