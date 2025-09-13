@@ -2350,17 +2350,17 @@ Antes de marcar un ticket como pagado, **DEBES crear una cita primero**. Los pas
 | **GET** | `/api/configurations/histories/` | Listar historiales | Requerida |
 | **POST** | `/api/configurations/histories/create/` | Crear historial | Requerida |
 | **POST** | `/api/configurations/histories/{id}/delete/` | Eliminar historial | Requerida |
-| **GET** | `/api/configurations/histories/document_types/` | Listar Tipos de Documentos | Requerida |
-| **POST** | `/api/configurations/histories/document_types/create/` | Crear Tipo de Documento | Requerida |
-| **DELETE** | `/api/configurations/histories/document_types/id/delete/` | Eliminar Tipo de Documento | Requerida |
-| **GET** | `/api/configurations/histories/payment_types/` | Listar Tipos de Pagos | Requerida |
-| **POST** | `/api/configurations/histories/payment_types/create/` | Crear Tipo de Pago | Requerida |
-| **PUT** | `/api/configurations/histories/payment_types/id/edit/` | Actualizar Tipo de Pago | Requerida |
-| **DELETE** | `/api/configurations/histories/payment_types/id/delete/` | Eliminar Tipo de Pago | Requerida |
-| **GET** | `/api/configurations/histories/predetermined_prices/` | Listar Precios Predeterminados | Requerida |
-| **POST** | `/api/configurations/histories/predetermined_prices/create/` | Crear Precio Predeterminado | Requerida |
-| **PUT** | `/api/configurations/histories/predetermined_prices/id/edit/` | Actualizar Precio Predeterminado | Requerida |
-| **DELETE** | `/api/configurations/histories/predetermined_prices/id/delete/` | Eliminar Precio Predeterminado | Requerida |
+| **GET** | `/api/configurations/document_types/` | Listar Tipos de Documentos | Requerida |
+| **POST** | `/api/configurations/document_types/create/` | Crear Tipo de Documento | Requerida |
+| **DELETE** | `/api/configurations/document_types/id/delete/` | Eliminar Tipo de Documento | Requerida |
+| **GET** | `/api/configurations/payment_types/` | Listar Tipos de Pagos | Requerida |
+| **POST** | `/api/configurations/payment_types/create/` | Crear Tipo de Pago | Requerida |
+| **PUT** | `/api/configurations/payment_types/id/edit/` | Actualizar Tipo de Pago | Requerida |
+| **DELETE** | `/api/configurations/payment_types/id/delete/` | Eliminar Tipo de Pago | Requerida |
+| **GET** | `/api/configurations/predetermined_prices/` | Listar Precios Predeterminados | Requerida |
+| **POST** | `/api/configurations/predetermined_prices/create/` | Crear Precio Predeterminado | Requerida |
+| **PUT** | `/api/configurations/predetermined_prices/id/edit/` | Actualizar Precio Predeterminado | Requerida |
+| **DELETE** | `/api/configurations/predetermined_prices/id/delete/` | Eliminar Precio Predeterminado | Requerida |
 
 
 #### Ejemplos de Historiales

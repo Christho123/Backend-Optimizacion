@@ -14,7 +14,8 @@ class CompanyDataSerializer(serializers.ModelSerializer):
     def get_logo_url(self, obj):
         if not obj.company_logo:
             return None
-        return obj.company_logo
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.company_logo.url) if request else obj.company_logo.url
 
     def get_has_logo(self, obj):
         return bool(obj.company_logo)
