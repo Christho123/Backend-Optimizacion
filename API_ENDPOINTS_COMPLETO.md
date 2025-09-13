@@ -17,6 +17,14 @@ Todas las APIs siguen el patrón: `/api/[modulo]/[recurso]/`
 |--------|----------|-------------|---------------| 
 | **POST** | `/api/architect/auth/login/` | Login de usuario | No requerida |
 | **POST** | `/api/architect/auth/register/` | Registro de usuario | No requerida |
+| **GET** | `/api/architect/users/` | Listar Usuarios | Requerida |
+| **POST** | `/api/architect/users/` | Crear Usuarios | Requerida |
+| **GET** | `/api/architect/roles/` | Listar Roles | Requerida |
+| **GET** | `/api/architect/roles/id/` | Detalle Rol Especifico | Requerida |
+| **POST** | `/api/architect/roles/create/` | Crear Roles | Requerida |
+| **PUT** | `/api/architect/roles/id/edit/` | Editar Rol | Requerida |
+| **DELETE** | `/api/architect/roles/id/delete/` | Eliminar Rol | Requerida |
+
 
 #### Ejemplos de Autenticación
 
@@ -207,6 +215,125 @@ Todas las APIs siguen el patrón: `/api/[modulo]/[recurso]/`
   ]
 }
 ```
+
+------------------------------------------------------------------------------
+
+**Listar Roles:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** GET
+- **URL:** `{{base_url}}/api/architect/roles/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+```
+Content-Type: application/json
+```
+- **Body (raw JSON):**
+  ```json
+  **vacio**
+  ```
+
+**Respuesta Exitosa:**
+```json
+[
+    {
+        "id": 1,
+        "name": "prueba2",
+        "guard_name": "prueba3",
+        "created_at": "2025-09-13T16:52:48.732006Z",
+        "updated_at": "2025-09-13T16:55:19.575166Z"
+    }
+]
+```
+
+------------------------------------------------------------------------------
+
+**Crear Rol:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** POST
+- **URL:** `{{base_url}}/api/architect/roles/create/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+```
+Content-Type: application/json
+```
+- **Body (raw JSON):**
+  ```json
+  {
+    "name": "prueba3",
+    "guard_name": "prueba4"
+  }
+  ```
+
+**Respuesta Exitosa:**
+```json
+{
+    "id": 3,
+    "name": "prueba3",
+    "guard_name": "prueba4",
+    "created_at": "2025-09-13T17:04:29.968271Z",
+    "updated_at": "2025-09-13T17:04:29.968655Z"
+}
+```
+
+------------------------------------------------------------------------------
+
+**Actualizar Rol:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** PUT
+- **URL:** `{{base_url}}/api/architect/roles/id/edit/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+```
+Content-Type: application/json
+```
+- **Body (raw JSON):**
+  ```json
+  {
+    "name": "prueba5",
+    "guard_name": "prueba6"
+  }
+  ```
+
+**Respuesta Exitosa:**
+```json
+{
+    "id": 3,
+    "name": "prueba5",
+    "guard_name": "prueba6",
+    "created_at": "2025-09-13T17:04:29.968271Z",
+    "updated_at": "2025-09-13T17:05:54.742110Z"
+}
+```
+
+------------------------------------------------------------------------------
+
+**Eliminar Rol:**
+- **Base URL:** `http://178.156.204.38/`
+- **Método:** DELETE
+- **URL:** `{{base_url}}/api/architect/roles/id/delete/`
+- **Auth:** Basic Auth
+  - Username: `reflexo@gmail.com`
+  - Password: `Reflexo159//`
+- **Headers:**
+```
+Content-Type: application/json
+```
+- **Body (raw JSON):**
+  ```json
+  **vacio**
+  ```
+
+**Respuesta Exitosa:**
+
+**204 NO CONTENT**
+
+------------------------------------------------------------------------------
 
 ---
 
