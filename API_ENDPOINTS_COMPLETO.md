@@ -20,7 +20,6 @@ Todas las APIs siguen el patrón: `/api/[modulo]/[recurso]/`
 | **GET** | `/api/architect/users/` | Listar Usuarios | Requerida |
 | **POST** | `/api/architect/users/` | Crear Usuarios | Requerida |
 | **GET** | `/api/architect/roles/` | Listar Roles | Requerida |
-| **GET** | `/api/architect/roles/id/` | Detalle Rol Especifico | Requerida |
 | **POST** | `/api/architect/roles/create/` | Crear Roles | Requerida |
 | **PUT** | `/api/architect/roles/id/edit/` | Editar Rol | Requerida |
 | **DELETE** | `/api/architect/roles/id/delete/` | Eliminar Rol | Requerida |
