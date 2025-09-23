@@ -10,8 +10,9 @@ urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='login'),
     path('auth/register/', RegisterView.as_view(), name='register'),
     
-    # Usuarios
-    path('users/', UserView.as_view(), name='users'),
+    # Usuarios - Actualizado para soportar todas las operaciones
+    path('users/', UserView.as_view(), name='users'),  # GET (listar), POST (crear)
+    path('users/<int:pk>/', UserView.as_view(), name='users_detail'),  # GET, PUT, PATCH, DELETE (operaciones específicas)
     
     # Permisos
     path('permissions/', PermissionView.as_view(), name='permissions'),
