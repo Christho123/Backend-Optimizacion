@@ -25,7 +25,7 @@ PERMISSION_TYPES = {
 
 # Configuración de JWT
 JWT_SETTINGS = {
-    'ACCESS_TOKEN_LIFETIME': 5,  # minutos
+    'ACCESS_TOKEN_LIFETIME': 1440,  # minutos
     'REFRESH_TOKEN_LIFETIME': 1440,  # minutos (24 horas)
 }
 
